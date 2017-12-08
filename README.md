@@ -1,4 +1,4 @@
-# scripts
+# Scripts
 A set of bash scripts that may enhance your reMarkable experience
 
 Scripts are split into a total of 3 categories:
@@ -13,7 +13,7 @@ reZone is a small script that can set the timezone on your reMarkable according 
 This is done trough SSH by replacing the environmental `TZ` variable in `/etc/profile`.
 
 #### Usage:
-```sh
+```
 Usage: rezone.sh [SSH | -h | -help | --help]
 
 Arguments:
