@@ -103,6 +103,6 @@ while [[ $input != 'n' ]]; do
 
   # Connection failed
   else
-    read -p "Failed establish connection with $SSH_ADDR. Retry? [Y/n]: " input
+    read -p "Failed to establish connection with $SSH_ADDR. Retry? [Y/n]: " input
   fi
 done
