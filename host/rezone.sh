@@ -56,11 +56,6 @@ fi
 
 # Check and assign optional SSH argument
 if [ ! -z $1 ]; then
-  if [ -z $(echo $1 | grep -oP '^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$') ]; then
-    echo "Invalid SSH address provided"
-    exit -1
-  fi
-
   SSH_ADDR=$1
 fi
 
@@ -86,7 +81,6 @@ if [ -z $TZ ]; then
     exit -1
   fi
 fi
-
 
 echo "Selected $TZ"
 echo "Attempting to establish connection with $SSH_ADDR"
