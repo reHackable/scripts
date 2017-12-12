@@ -28,7 +28,7 @@
 ADDR=10.11.99.1
 
 # Check for minimm argument count
-if [ -z $1 ];  then
+if [ -z "$1" ];  then
   echo "No arguments provided"
   echo
   echo "Usage: repush.sh doc1 [doc2 ...]"
@@ -37,11 +37,11 @@ if [ -z $1 ];  then
 fi
 
 # Check file validity before initiating push
-for f in $@; do
-  if [ ! -f $f ]; then
+for f in "$@"; do
+  if [ ! -f "$f" ]; then
     echo "No such file: $f"
     exit -1
-  elif ! file -F '|' $f | grep -qoP "(?<=\| )(PDF|EPUB)"; then
+  elif ! file -F '|' "$f" | grep -qoP "(?<=\| )(PDF|EPUB)"; then
     echo "Unsupported file format: $f"
     echo "Only PDFs and EPUBs are supported"
     exit -1
@@ -49,17 +49,17 @@ for f in $@; do
 done
 
 # Transfer files
-for f in $@; do
+for f in "$@"; do
   stat=""
   attempt=""
-  while [[ ! $stat && $attempt != "n" ]]; do
-    if curl --connect-timeout 2 --silent --output /dev/null --form file=@$f http://$ADDR/upload; then
+  while [[ ! "$stat" && "$attempt" != "n" ]]; do
+    if curl --connect-timeout 2 --silent --output /dev/null --form file=@"$f" http://"$ADDR"/upload; then
       stat=1
       echo "$f: Success"
     else
       stat=""
       echo "$f: Failed"
-      read -p "Failed to push file! Retry? [Y/n]: " attempt
+      read -r -p "Failed to push file! Retry? [Y/n]: " attempt
     fi
   done
 done

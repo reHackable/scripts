@@ -41,13 +41,13 @@ SSH_ADDR=10.11.99.1
 shopt -s nocasematch
 
 # Check for -h / --help
-if [[ $1 =~ --help|-h(elp)? ]]; then
+if [[ "$1" =~ --help|-h(elp)? ]]; then
   usage
   exit 1
 fi
 
 # Check if too many parameters have been provided
-if [[ $# > 1 ]]; then
+if [ "$#" -gt 1 ]; then
   echo "Too many arguments provided"
   echo
   usage
@@ -55,8 +55,8 @@ if [[ $# > 1 ]]; then
 fi
 
 # Check and assign optional SSH argument
-if [ ! -z $1 ]; then
-  SSH_ADDR=$1
+if [ ! -z "$1" ]; then
+  SSH_ADDR="$1"
 fi
 
 LOCAL_TZ=$(date +%Z)
@@ -65,15 +65,15 @@ echo
 echo '= reZone ='
 echo '----------'
 echo 'See https://en.wikipedia.org/wiki/List_of_tz_database_time_zones for possible timezones'
-read -p "Set timezone to ($LOCAL_TZ): " TZ
+read -r -p "Set timezone to ($LOCAL_TZ): " TZ
 echo
 
 # Check input
-if [ -z $TZ ]; then
+if [ -z "$TZ" ]; then
 
   # Use host TZ
-  if [[ $LOCAL_TZ != "" ]]; then
-    TZ=$LOCAL_TZ
+  if [[ "$LOCAL_TZ" != "" ]]; then
+    TZ="$LOCAL_TZ"
 
   # No input or host TZ specified
   else
@@ -86,13 +86,13 @@ echo "Selected $TZ"
 echo "Attempting to establish connection with $SSH_ADDR"
 
 # Run
-while [[ $input != 'n' ]]; do
+while [[ "$input" != 'n' ]]; do
 
   # Check connection to device
-  if nc -z -w 1 $SSH_ADDR 22 > /dev/null; then
+  if nc -z -w 1 "$SSH_ADDR" 22 > /dev/null; then
 
     # Replace TZ assignment with new timezone in /etc/profile line 9
-    if [[ $(ssh root@$SSH_ADDR -C "sed -E -i 's/(TZ=)(\"[^\"]*\")/\1\"$TZ\"/' /etc/profile; cat /etc/profile | grep -o 'TZ=\"$TZ\"'") == "" ]]; then
+    if [[ $(ssh root@"$SSH_ADDR" -C "sed -E -i 's/(TZ=)(\"[^\"]*\")/\1\"$TZ\"/' /etc/profile; cat /etc/profile | grep -o 'TZ=\"$TZ\"'") == "" ]]; then
       echo "Failed to permanently set timezone to $TZ"
       echo "On your reMarkable, please inspect line 9 in /etc/profile and manually change the timezone from there"
     else
@@ -103,6 +103,6 @@ while [[ $input != 'n' ]]; do
 
   # Connection failed
   else
-    read -p "Failed to establish connection with $SSH_ADDR. Retry? [Y/n]: " input
+    read -r -p "Failed to establish connection with $SSH_ADDR. Retry? [Y/n]: " input
   fi
 done
