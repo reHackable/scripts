@@ -23,7 +23,7 @@ SSH                     Devices SSH address (default 10.11.99.1)
 -h -help --help         Displays script usage (this)
 ```
 
-## repush.sh
+### repush.sh
 > [Source](https://github.com/reHackable/scripts/blob/master/host/repush.sh)
 
 Host sided script that can push one or more provided documents to the reMarkable via the web client
