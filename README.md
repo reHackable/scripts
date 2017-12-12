@@ -23,6 +23,21 @@ SSH                     Devices SSH address (default 10.11.99.1)
 -h -help --help         Displays script usage (this)
 ```
 
+## repush.sh
+> [Source](https://github.com/reHackable/scripts/blob/master/host/repush.sh)
+
+Host sided script that can push one or more provided documents to the reMarkable via the web client
+
+#### Supported document types:
+
+* PDF
+* EPUB
+
+### Usage:
+```
+Usage: repush.sh doc1 [doc2 ...]
+```
+
 ## Client
 All scripts that fall under this category are client-sided scripts. In other words, these scripts
 are executed on your reMarkable either locally, or trough an SSH connection.
