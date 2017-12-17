@@ -45,7 +45,6 @@ while getopts ":hr:p:" remote; do
       ;;
     r)
       SSH_ADDRESS="$OPTARG"
-      REMOTE=1
       ;;
 
     h)
@@ -82,7 +81,7 @@ for f in "$@"; do
 done
 
 # Remote transfers (-r)
-if [ "$REMOTE" ]; then
+if [ "$SSH_ADDRESS" ]; then
   if nc -z localhost "$PORT" > /dev/null; then
     echo "Port $PORT is already used by a different process!"
     exit -1
@@ -119,7 +118,7 @@ for f in "$@"; do
   done
 done
 
-if [ "$REMOTE" ]; then
+if [ "$SSH_ADDRESS" ]; then
   ssh -S remarkable-web-ui -O exit root@10.0.0.43
   echo "Closed conenction to the reMarkable web interface"
 fi
