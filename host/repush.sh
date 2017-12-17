@@ -38,21 +38,23 @@ function usage {
   echo -e "-p\t\t\tIf -r has been given, this option defines port to which the webui will be tunneled (default 9000)"
 }
 
+# Evaluate Options/Parameters
 while getopts ":hr:p:" remote; do
   case "$remote" in
-    p)
-      PORT="$OPTARG"
-      ;;
-    r)
+    r) # Push Remotely
       SSH_ADDRESS="$OPTARG"
       ;;
 
-    h)
+    p) # Tunneling Port defined
+      PORT="$OPTARG"
+      ;;
+
+    h) # Usage help
       usage
       exit 1
       ;;
 
-    ?)
+    ?) # Unkown Option
       echo "Invalid option or missing arguments: -$OPTARG"
       usage
       exit -1
