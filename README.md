@@ -37,9 +37,10 @@ In order for this script to work, the reMarkable web interface must be enabled f
 
 ### Usage:
 ```
-Usage: repush.sh [-r ip] [-p port] doc1 [doc2 ...]
+Usage: repush.sh [-d] [-r ip] [-p port] doc1 [doc2 ...]
 
 Options:
+-d                      Delete file after successful push
 -r                      Push remotely via ssh tunneling
 -p                      If -r has been given, this option defines port to which the webui will be tunneled (default 9000)
 ```

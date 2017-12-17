@@ -31,15 +31,16 @@ WEBUI_ADDRESS="10.11.99.1:80"
 PORT=9000 # Deault port to which the webui is tunneled to
 
 function usage {
-  echo "Usage: repush.sh [-r ip] [-p port] doc1 [doc2 ...]"
+  echo "Usage: repush.sh [-d] [-r ip] [-p port] doc1 [doc2 ...]"
   echo
   echo "Options:"
+  echo -e "-d\t\t\tDelete file after successful push"
   echo -e "-r\t\t\tPush remotely via ssh tunneling"
   echo -e "-p\t\t\tIf -r has been given, this option defines port to which the webui will be tunneled (default 9000)"
 }
 
 # Evaluate Options/Parameters
-while getopts ":hr:p:" remote; do
+while getopts ":hdr:p:" remote; do
   case "$remote" in
     r) # Push Remotely
       SSH_ADDRESS="$OPTARG"
@@ -47,6 +48,10 @@ while getopts ":hr:p:" remote; do
 
     p) # Tunneling Port defined
       PORT="$OPTARG"
+      ;;
+
+    d) # Delete file after successful push
+      DELETE_ON_PUSH=1
       ;;
 
     h) # Usage help
@@ -111,6 +116,15 @@ for f in "$@"; do
     if curl --connect-timeout 2 --silent --output /dev/null --form file=@"$f" http://"$WEBUI_ADDRESS"/upload; then
       stat=1
       echo "$f: Success"
+
+      # Dete flag (-d) provided
+      if [ "$DELETE_ON_PUSH" ]; then
+        rm "$f"
+        if [ $? -ne 0 ]; then
+          echo "Failed to remove $f"
+        fi
+      fi
+
       ((success++))
     else
       stat=""
