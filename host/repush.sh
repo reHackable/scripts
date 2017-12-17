@@ -105,10 +105,12 @@ echo "Initiating file transfer..."
 for f in "$@"; do
   stat=""
   attempt=""
+  success=0
   while [[ ! "$stat" && "$attempt" != "n" ]]; do
     if curl --connect-timeout 2 --silent --output /dev/null --form file=@"$f" http://"$WEBUI_ADDRESS"/upload; then
       stat=1
       echo "$f: Success"
+      ((success++))
     else
       stat=""
       echo "$f: Failed"
@@ -120,4 +122,10 @@ done
 if [ "$REMOTE" ]; then
   ssh -S remarkable-web-ui -O exit root@10.0.0.43
   echo "Closed conenction to the reMarkable web interface"
+fi
+
+if [ $success -ne 1 ]; then
+  echo "Successfully transferred $success documents"
+else
+  echo "Successfully transferred $success document"
 fi
