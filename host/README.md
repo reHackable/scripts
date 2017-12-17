@@ -21,7 +21,7 @@ SSH                     Devices SSH address (default 10.11.99.1)
 ## repush.sh
 > [Source](https://github.com/reHackable/scripts/blob/master/host/repush.sh)
 
-Host sided script that can push one or more provided documents to the reMarkable via the web client
+Host sided script that can push one or more provided documents to the reMarkable via the web client. Files can be pushed trough USB, as well as remotely trough the `-r` option
 
 #### Supported document types:
 
@@ -30,5 +30,9 @@ Host sided script that can push one or more provided documents to the reMarkable
 
 ### Usage:
 ```
-Usage: repush.sh doc1 [doc2 ...]
+Usage: repush.sh [-r ip] [-p port] doc1 [doc2 ...]
+
+Options:
+-r                      Push remotely via ssh tunneling
+-p                      If -r has been given, this option defines port to which the webui will be tunneled (default 9000)
 ```

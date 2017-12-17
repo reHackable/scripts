@@ -24,15 +24,48 @@
 # Notations     : While this isn't directly related to this script, attempting to push epubs trough the web client
 #                 may freeze the device
 
-# Device address when connected to USB
-ADDR=10.11.99.1
+# Local
+WEBUI_ADDRESS="10.11.99.1:80"
+
+# Remote
+PORT=9000 # Deault port to which the webui is tunneled to
+
+function usage {
+  echo "Usage: repush.sh [-r ip] [-p port] doc1 [doc2 ...]"
+  echo
+  echo "Options:"
+  echo -e "-r\t\t\tPush remotely via ssh tunneling"
+  echo -e "-p\t\t\tIf -r has been given, this option defines port to which the webui will be tunneled (default 9000)"
+}
+
+while getopts ":hr:p:" remote; do
+  case "$remote" in
+    p)
+      PORT="$OPTARG"
+      ;;
+    r)
+      SSH_ADDRESS="$OPTARG"
+      REMOTE=1
+      ;;
+
+    h)
+      usage
+      exit 1
+      ;;
+
+    ?)
+      echo "Invalid option or missing arguments: -$OPTARG"
+      usage
+      exit -1
+      ;;
+  esac
+done
+shift $((OPTIND-1))
 
 # Check for minimm argument count
 if [ -z "$1" ];  then
-  echo "No arguments provided"
-  echo
-  echo "Usage: repush.sh doc1 [doc2 ...]"
-
+  echo "No documents provided"
+  usage
   exit -1
 fi
 
@@ -48,12 +81,32 @@ for f in "$@"; do
   fi
 done
 
+# Remote transfers (-r)
+if [ "$REMOTE" ]; then
+  if nc -z localhost "$PORT" > /dev/null; then
+    echo "Port $PORT is already used by a different process!"
+    exit -1
+  fi
+
+  # Open SSH tunnel for the WebUI
+  ssh -M -S remarkable-web-ui -q -f -L "$PORT":"$WEBUI_ADDRESS" root@"$SSH_ADDRESS" -N;
+
+  if ! nc -z localhost "$PORT" > /dev/null; then
+    echo "Failed to establish connection with the device!"
+    exit -1
+  fi
+
+  WEBUI_ADDRESS="localhost:$PORT"
+  echo "Established remote connection to the reMarkable web interface"
+fi
+
 # Transfer files
+echo "Initiating file transfer..."
 for f in "$@"; do
   stat=""
   attempt=""
   while [[ ! "$stat" && "$attempt" != "n" ]]; do
-    if curl --connect-timeout 2 --silent --output /dev/null --form file=@"$f" http://"$ADDR"/upload; then
+    if curl --connect-timeout 2 --silent --output /dev/null --form file=@"$f" http://"$WEBUI_ADDRESS"/upload; then
       stat=1
       echo "$f: Success"
     else
@@ -63,3 +116,8 @@ for f in "$@"; do
     fi
   done
 done
+
+if [ "$REMOTE" ]; then
+  ssh -S remarkable-web-ui -O exit root@10.0.0.43
+  echo "Closed conenction to the reMarkable web interface"
+fi
