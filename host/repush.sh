@@ -19,7 +19,7 @@
 # Description   : Host sided script that can push one or more documents to the reMarkable
 #                 using the Web client
 
-# Dependencies  : cURL
+# Dependencies  : cURL, ssh, nc
 
 # Notations     : While this isn't directly related to this script, attempting to push epubs trough the web client
 #                 may freeze the device
