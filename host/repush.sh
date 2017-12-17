@@ -135,7 +135,7 @@ for f in "$@"; do
 done
 
 if [ "$SSH_ADDRESS" ]; then
-  ssh -S remarkable-web-ui -O exit root@10.0.0.43
+  ssh -S remarkable-web-ui -O exit root@"$SSH_ADDRESS"
   echo "Closed conenction to the reMarkable web interface"
 fi
 
