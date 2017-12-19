@@ -57,7 +57,7 @@ $ bash repush.sh -r 10.0.0.43 test1.pdf test2.pdf
 ```
 
 ### repull.sh
-> [Source](https://github.com/reHackable/scripts/blob/master/host/repush.sh)
+> [Source](https://github.com/reHackable/scripts/blob/master/host/repull.sh)
 
 A host sided script that can download one or more documents from the reMarkable via the web client. Files can be downloaded trough USB, as well as remotely trough the `-r` option
 
@@ -78,7 +78,7 @@ The following example downloads a document that goes by the name of test1 while 
 ```sh
 $ bash repull.sh test1
 ```
-The output will either be and PDF or EPUB, depending on the document type
+The output will either be a PDF or a EPUB, depending on the document type
 
 The following example downloads test1 and test2 remotely. This example assumes the devices network ip is `10.0.0.43`.
 ```sh
