@@ -60,12 +60,18 @@ In order for this script to work, the reMarkable web interface must be enabled f
 
 ### Usage:
 ```
-Usage: repush.sh [-d] [-r ip] [-p port] doc1 [doc2 ...]
+repull: No document names provided
+Usage: repull.sh [-o out] [-r ip] [-p port] docname1 [docname2 ...]
 
 Options:
--d                      Delete file after successful push
--r                      Push remotely via ssh tunneling
+-o                      Output file or directory
+-r                      Pull remotely via ssh tunneling
+-r                      Pull remotely via ssh tunneling
 -p                      If -r has been given, this option defines port to which the webui will be tunneled (default 9000)
+
+If multiple documents share the same name, the script will prompt you
+to select one or more documents from a list that is sorted by modification
+date. The first list entry represents the most recently updated document.
 ```
 
 ### Example:

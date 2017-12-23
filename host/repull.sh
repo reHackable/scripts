@@ -27,14 +27,16 @@ SSH_ADDRESS="10.11.99.1"
 PORT=9000                     # Deault port to which the webui is tunneled to
 
 function usage {
-  echo "Usage: repull.sh [-r ip] [-p port] docname1 [docname2 ...]"
+  echo "Usage: repull.sh [-o out] [-r ip] [-p port] docname1 [docname2 ...]"
   echo
   echo "Options:"
+  echo -e "-o\t\t\tOutput file or directory"
+  echo -e "-r\t\t\tPull remotely via ssh tunneling"
   echo -e "-r\t\t\tPull remotely via ssh tunneling"
   echo -e "-p\t\t\tIf -r has been given, this option defines port to which the webui will be tunneled (default 9000)"
   echo
   echo "If multiple documents share the same name, the script will prompt you"
-  echo "to select one or more documents from a list that is sorted by modficiation"
+  echo "to select one or more documents from a list that is sorted by modification"
   echo "date. The first list entry represents the most recently updated document."
 }
 
@@ -73,6 +75,7 @@ function download {
     fi
   fi
 }
+  echo -e "-r\t\t\tPull remotely via ssh tunneling"
 
 # Evaluate Options/Parameters
 while getopts ":ho:r:p:" remote; do

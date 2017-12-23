@@ -16,11 +16,18 @@ This is done trough SSH by replacing the environmental `TZ` variable in `/etc/pr
 
 #### Usage:
 ```
-Usage: rezone.sh [SSH | -h | -help | --help]
+repull: No document names provided
+Usage: repull.sh [-o out] [-r ip] [-p port] docname1 [docname2 ...]
 
-Arguments:
-SSH                     Devices SSH address (default 10.11.99.1)
--h -help --help         Displays script usage (this)
+Options:
+-o                      Output file or directory
+-r                      Pull remotely via ssh tunneling
+-r                      Pull remotely via ssh tunneling
+-p                      If -r has been given, this option defines port to which the webui will be tunneled (default 9000)
+
+If multiple documents share the same name, the script will prompt you
+to select one or more documents from a list that is sorted by modification
+date. The first list entry represents the most recently updated document.
 ```
 
 ### repush.sh
