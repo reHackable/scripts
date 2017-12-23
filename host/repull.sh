@@ -83,6 +83,7 @@ while getopts ":ho:r:p:" remote; do
 
     r) # Pull Remotely
       SSH_ADDRESS="$OPTARG"
+      REMOTE=1
       ;;
 
     p) # Tunneling Port defined
@@ -109,14 +110,14 @@ if [ -z "$1" ];  then
   usage
   exit -1
 fi
-
+reull
 if [ $# -gt 1 ] && [ ! -d "$OUTPUT" ]; then
   echo "repull: Output path '$OUTPUT' is not a directory"
   exit -1
 fi
 
 # Remote transfers (-r)
-if [ "$SSH_ADDRESS" ]; then
+if [ "$REMOTE" ]; then
   if nc -z localhost "$PORT" > /dev/null; then
     echo "repull: Port $PORT is already used by a different process!"
     exit -1
