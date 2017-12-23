@@ -21,11 +21,10 @@
 
 # Dependencies  : cURL, ssh, nc, date, grep
 
-# Local
+# Default Values
 WEBUI_ADDRESS="10.11.99.1:80"
-
-# Remote
-PORT=9000 # Deault port to which the webui is tunneled to
+SSH_ADDRESS="10.11.99.1"
+PORT=9000                     # Deault port to which the webui is tunneled to
 
 function usage {
   echo "Usage: repull.sh [-r ip] [-p port] docname1 [docname2 ...]"
@@ -39,9 +38,49 @@ function usage {
   echo "date. The first list entry represents the most recently updated document."
 }
 
+# Downloads document trough the webui
+
+# $1 - WebUI address (10.11.99.1)
+# $2 - File ID
+# $3 - Output name or dir (Opt)
+# $4 - Text to be appended to file name (before extension) (Opt)
+function download {
+  f=$(curl --connect-timeout 2 -JLO http://"$1"/download/"$2"/placeholder | grep -oP "(?<=curl: Saved to filename ')[^']*");
+
+  # Check if name or appendation has been provided
+  if [ "$?" -eq 0 ] && [ "$3" ] || [ "$4" ]; then
+    oldf="$f"
+
+    # Defined name or dir
+    if [ "$3" ]; then
+      if [ -d "$3" ]; then # Dir
+        f="${3%/}/$f"
+      else
+        f="$3" # Name
+      fi
+    fi
+
+    # Append to name
+    if [ "$4" ]; then
+      f="${f%.*}$4.${f##*.}"
+    fi
+
+    # Move/Rename file
+    mv "$oldf" "$f"
+    if [ "$?" -eq 1 ]; then
+      echo "repull: Failed to move or rename $oldf to $f"
+      return
+    fi
+  fi
+}
+
 # Evaluate Options/Parameters
-while getopts ":hr:p:" remote; do
+while getopts ":ho:r:p:" remote; do
   case "$remote" in
+    o) # Output path
+      OUTPUT="$OPTARG"
+      ;;
+
     r) # Pull Remotely
       SSH_ADDRESS="$OPTARG"
       ;;
@@ -56,7 +95,7 @@ while getopts ":hr:p:" remote; do
       ;;
 
     ?) # Unkown Option
-      echo "Invalid option or missing arguments: -$OPTARG"
+      echo "repull: Invalid option or missing arguments: -$OPTARG"
       usage
       exit -1
       ;;
@@ -66,15 +105,20 @@ shift $((OPTIND-1))
 
 # Check for minimm argument count
 if [ -z "$1" ];  then
-  echo "No document names provided"
+  echo "repull: No document names provided"
   usage
+  exit -1
+fi
+
+if [ $# -gt 1 ] && [ ! -d "$OUTPUT" ]; then
+  echo "repull: Output path '$OUTPUT' is not a directory"
   exit -1
 fi
 
 # Remote transfers (-r)
 if [ "$SSH_ADDRESS" ]; then
   if nc -z localhost "$PORT" > /dev/null; then
-    echo "Port $PORT is already used by a different process!"
+    echo "repull: Port $PORT is already used by a different process!"
     exit -1
   fi
 
@@ -82,17 +126,17 @@ if [ "$SSH_ADDRESS" ]; then
   ssh -M -S remarkable-web-ui -q -f -L "$PORT":"$WEBUI_ADDRESS" root@"$SSH_ADDRESS" -N;
 
   if ! nc -z localhost "$PORT" > /dev/null; then
-    echo "Failed to establish connection with the device!"
+    echo "repull: Failed to establish connection with the device!"
     exit -1
   fi
 
   WEBUI_ADDRESS="localhost:$PORT"
-  echo "Established remote connection to the reMarkable web interface"
+  echo "repull: Established remote connection to the reMarkable web interface"
 fi
 
 # Check if name matches document
 # this way we can prevent unecessary pulling
-echo "Checking device for documents..."
+echo "repull: Checking device for documents..."
 for n in "$@"; do
   REGEX="\"visibleName\": \"$n\""
   GREP="grep -l -r '$REGEX' /home/root/.local/share/remarkable/xochitl/*.metadata"
@@ -137,13 +181,11 @@ for n in "$@"; do
         # Fetch requested files
         for (( i=$start-1; i<$end; i++ )); do
           date=$(date -d @"$(expr ${modtimes[$i]} / 1000)" '+%Y%m%d%H%M%S')
-          f=$(curl --connect-timeout 2 -JLO http://"$WEBUI_ADDRESS"/download/"${fileids[$i]}"/placeholder | grep -oP "(?<=curl: Saved to filename ')[^']*");
-          if [ $? -eq 1 ]; then
-            echo "$n($date): Failed"
+          download "$WEBUI_ADDRESS" "${fileids[i]}" "$OUTPUT" "($date)"
+          if [ $? -eq 0 ]; then
+            echo "$f: Success"
           else
-            newf="${f%.*}($date).${f##*.}"
-            mv "$f" "$newf"
-            echo "$newf: Success"
+            echo "$n($date): Failed"
           fi
         done
         break
@@ -153,13 +195,11 @@ for n in "$@"; do
         for i in $input; do
           ((i--)) # Decrement itterator to match array index
           date=$(date -d @"$(expr ${modtimes[$i]} / 1000)" '+%Y%m%d%H%M%S')
-          f=$(curl --connect-timeout 2 -JLO http://"$WEBUI_ADDRESS"/download/"${fileids[$i]}"/placeholder | grep -oP "(?<=curl: Saved to filename ')[^']*");
-          if [ $? -eq 1 ]; then
-            echo "$n($date): Failed"
+          download "$WEBUI_ADDRESS" "${fileids[i]}" "$OUTPUT" "($date)"
+          if [ $? -eq 0 ]; then
+            echo "$f: Success"
           else
-            newf="${f%.*}($date).${f##*.}"
-            mv "$f" "$newf"
-            echo "$newf: Success"
+            echo "$n($date): Failed"
           fi
         done
         break
@@ -174,11 +214,11 @@ for n in "$@"; do
   # Fetch document assigned to name
   elif [ ! -z "$matches" ]; then
     fid=$(echo "$matches" | grep -o '[a-z0-9]*\-[a-z0-9]*\-[a-z0-9]*\-[a-z0-9]*\-[a-z0-9]*')
-    f=$(curl --connect-timeout 2 -JLO http://"$WEBUI_ADDRESS"/download/"$fid"/placeholder | grep -oP "(?<=curl: Saved to filename ')[^']*");
-    if [ $? -eq 1 ]; then
-      echo "$n: Failed"
-    else
+    download "$WEBUI_ADDRESS" "$fid" "$OUTPUT" ""
+    if [ $? -eq 0 ]; then
       echo "$f: Success"
+    else
+      echo "$n($date): Failed"
     fi
 
   # Document not found
@@ -189,5 +229,5 @@ done
 
 if [ "$SSH_ADDRESS" ]; then
   ssh -S remarkable-web-ui -O exit root@10.0.0.43
-  echo "Closed conenction to the reMarkable web interface"
+  echo "repull: Closed conenction to the reMarkable web interface"
 fi
