@@ -64,7 +64,10 @@ function download {
 
     # Append to name
     if [ "$4" ]; then
-      f="${f%.*}$4.${f##*.}"
+      if [[ $f =~ ^.*\..*$ ]]; then
+        ext=".${f##*.}"
+      fi
+      f="${f%.*}$4$ext"
     fi
 
     # Move/Rename file
@@ -113,7 +116,7 @@ if [ -z "$1" ];  then
   usage
   exit -1
 fi
-reull
+
 if [ $# -gt 1 ] && [ ! -d "$OUTPUT" ]; then
   echo "repull: Output path '$OUTPUT' is not a directory"
   exit -1
