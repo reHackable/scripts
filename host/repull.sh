@@ -78,7 +78,6 @@ function download {
     fi
   fi
 }
-  echo -e "-r\t\t\tPull remotely via ssh tunneling"
 
 # Evaluate Options/Parameters
 while getopts ":ho:r:p:" remote; do
