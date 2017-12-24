@@ -198,17 +198,30 @@ for n in "$@"; do
 
       # Input is one or more numbers
       elif [[ "$input" =~ ^([1-9][0-9]*\ *)*$ ]]; then
-        for i in $input; do
-          ((i--)) # Decrement itterator to match array index
-          date=$(date -d @"$(expr ${modtimes[$i]} / 1000)" '+%Y%m%d%H%M%S')
-          download "$WEBUI_ADDRESS" "${fileids[i]}" "$OUTPUT" "($date)"
-          if [ $? -eq 0 ]; then
-            echo "$f: Success"
-          else
-            echo "$n($date): Failed"
+
+        # Check input validity before pulling
+        INPUT_VALID=1
+        for j in $input; do
+          if [ "$j" -gt "$i" ]; then
+            echo "Index: '$j' out of range!"
+            INPUT_VALID=0
           fi
         done
-        break
+
+        if [ "$INPUT_VALID" -eq 1 ]; then
+          # Input valid, time to pull!
+          for j in $input; do
+            ((j--)) # Decrement itterator to match array index
+            date=$(date -d @"$(expr ${modtimes[$j]} / 1000)" '+%Y%m%d%H%M%S')
+            download "$WEBUI_ADDRESS" "${fileids[j]}" "$OUTPUT" "($date)"
+            if [ $? -eq 0 ]; then
+              echo "$f: Success"
+            else
+              echo "$n($date): Failed"
+            fi
+          done
+          break
+        fi
 
       # Input is invalid
       else
