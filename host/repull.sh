@@ -233,7 +233,7 @@ for n in "$@"; do
   fi
 done
 
-if [ "$SSH_ADDRESS" ]; then
+if [ "$REMOTE" ]; then
   ssh -S remarkable-web-ui -O exit root@10.0.0.43
   echo "repull: Closed conenction to the reMarkable web interface"
 fi
