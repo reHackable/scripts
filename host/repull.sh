@@ -162,7 +162,7 @@ for n in "$@"; do
     modtimes=($(echo "${matchAndDate[@]}" | grep -o '"[0-9]*"' | grep -o '[0-9]*'))
 
     echo
-    echo "$n matches multiple documents!"
+    echo "'$n' matches multiple documents!"
     while true; do
       echo
 
@@ -242,7 +242,7 @@ for n in "$@"; do
 
   # Document not found
   else
-    echo "Unable to find document for $n"
+    echo "Unable to find document for '$n'"
   fi
 done
 
