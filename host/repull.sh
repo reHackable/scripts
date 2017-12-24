@@ -144,10 +144,10 @@ fi
 # this way we can prevent unecessary pulling
 echo "repull: Checking device for documents..."
 for n in "$@"; do
+  # Retrieve file name(s)/uuid(s) for visible name
   REGEX="\"visibleName\": \"$n\""
   GREP="grep -l -r '$REGEX' /home/root/.local/share/remarkable/xochitl/*.metadata"
-  id="$(ssh root@"$SSH_ADDRESS" "$GREP")"
-  matches=($id)
+  matches=($(ssh root@"$SSH_ADDRESS" "$GREP")) # List of matched file name(s)/uuid(s)
 
   # Name assigned to multiple documents
   # Prepare for a mess
