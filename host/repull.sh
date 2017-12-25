@@ -154,13 +154,37 @@ for n in "$@"; do
   # This was the most efficient and elegant
   # solution I could currently come up with
   if [ ${#uuid[@]} -gt 1 ]; then
-    REGEX="\"lastModified\": \".*"
-    GREP="grep -o '$REGEX' ${uuid[*]}"
-    metadata="$(ssh root@"$SSH_ADDRESS" "$GREP | sort -rn -t'\"' -k4")"
+    REGEX='"lastModified": "[^"]*"|"parent": "[^"]*"'
+    GREP="grep -oE '$REGEX' ${uuid[*]}"
+    match=($(ssh root@"$SSH_ADDRESS" "$GREP"))
+
+    # Squash matches to one line for each file
+    for (( i=0; i < ${#match[@]}; i+=4 )); do
+      metadata[((i/3))]="${match[$i]}${match[$i+1]}${match[$i+2]}${match[$i+3]}"
+      ((j++))
+    done
+
+    # Sort metadata by date
+    metadata=($(printf '%s\n' "${metadata[@]}" | sort -rn -t'"' -k4))
 
     # Create synchronized arrays consisting of file metadata
-    uuid=($(echo "${metadata[@]}" | grep -o '[a-z0-9]*\-[a-z0-9]*\-[a-z0-9]*\-[a-z0-9]*\-[a-z0-9]*')) # UUIDs sorted by date
-    lastModified=($(echo "${metadata[@]}" | grep -o '"[0-9]*"' | grep -o '[0-9]*'))                   # Date and time of last modification
+    uuid=($(echo "${metadata[@]}" | grep -o '[a-z0-9]*\-[a-z0-9]*\-[a-z0-9]*\-[a-z0-9]*\-[a-z0-9]*' | awk 'NR == 1 || NR % 3 == 0')) # UUIDs sorted by date
+    lastModified=($(echo "${metadata[@]}" | grep -o '"lastModified":"[0-9]*"' | grep -o '[0-9]*'))                                   # Date and time of last modification
+
+    # Retrieve parent(s)/path of file
+    for (( i=0; i < ${#metadata[@]}; i++ )); do
+      puuid="$(echo "${metadata[$i]}" | grep -o '"parent":"[^"]*"' | grep -o '[a-z0-9]*\-[a-z0-9]*\-[a-z0-9]*\-[a-z0-9]*\-[a-z0-9]*')"
+
+      # File is child, recursively fetch its path
+      while [ ! -z "$puuid" ]; do
+        REGEX='"visibleName": "[^"]*"|"parent": "[^"]*"'
+        GREP="grep -oE '$REGEX' /home/root/.local/share/remarkable/xochitl/$puuid.metadata"
+        match="$(ssh root@"$SSH_ADDRESS" "$GREP")"
+
+        parent[$i]+="/$(echo "$match" | grep -oP '(?<=visibleName": ")[^"]*(?=")')"
+        puuid="$(echo "$match" | grep -oP '(?<=parent": ")[^"]*(?=")')"
+      done
+    done
 
     echo
     echo "'$n' matches multiple documents!"
@@ -168,8 +192,8 @@ for n in "$@"; do
       echo
 
       # Display file id's from most recently modified to oldest
-      for (( i=0; i<${#fileids[@]}; i++ )); do
-        echo "$(expr $i + 1). ${fileids[$i]} - Last modified $(date -d @$(expr ${lastModified[$i]} / 1000) '+%Y-%m-%d %H:%M:%S')"
+      for (( i=0; i<${#uuid[@]}; i++ )); do
+        echo -e "  $(expr $i + 1).\t${uuid[$i]}\tLast modified $(date -d @$(expr ${lastModified[$i]} / 1000) '+%Y-%m-%d %H:%M:%S')\t${parent[$i]}/$n"
       done
 
       echo
@@ -188,7 +212,7 @@ for n in "$@"; do
         # Fetch requested files
         for (( i=$start-1; i<$end; i++ )); do
           date=$(date -d @"$(expr ${lastModified[$i]} / 1000)" '+%Y%m%d%H%M%S')
-          download "$WEBUI_ADDRESS" "${fileids[i]}" "$OUTPUT" "($date)"
+          download "$WEBUI_ADDRESS" "${uuid[i]}" "$OUTPUT" "($date)"
           if [ $? -eq 0 ]; then
             echo "$f: Success"
           else
@@ -214,7 +238,7 @@ for n in "$@"; do
           for j in $input; do
             ((j--)) # Decrement itterator to match array index
             date=$(date -d @"$(expr ${lastModified[$j]} / 1000)" '+%Y%m%d%H%M%S')
-            download "$WEBUI_ADDRESS" "${fileids[j]}" "$OUTPUT" "($date)"
+            download "$WEBUI_ADDRESS" "${uuid[j]}" "$OUTPUT" "($date)"
             if [ $? -eq 0 ]; then
               echo "$f: Success"
             else
