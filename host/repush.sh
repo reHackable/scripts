@@ -139,4 +139,4 @@ if [ "$SSH_ADDRESS" ]; then
   echo "Closed conenction to the reMarkable web interface"
 fi
 
-echo "Successfully transferred $success out of "$@" documents"
+echo "Successfully transferred $success out of "$#" documents"
