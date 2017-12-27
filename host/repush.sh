@@ -113,7 +113,7 @@ for f in "$@"; do
   attempt=""
   success=0
   while [[ ! "$stat" && "$attempt" != "n" ]]; do
-    if curl --connect-timeout 2 --silent --output /dev/null --form file=@"$f" http://"$WEBUI_ADDRESS"/upload; then
+    if curl --connect-timeout 2 --silent --output /dev/null --form file=@"\"$f\"" http://"$WEBUI_ADDRESS"/upload; then
       stat=1
       echo "$f: Success"
 
