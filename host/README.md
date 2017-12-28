@@ -77,11 +77,11 @@ date. The first list entry represents the most recently updated document.
 ### Example:
 The following example downloads a document that goes by the name of test1 while the device is connected trough USB
 ```sh
-$ bash repull.sh test1
+$ bash repull.sh /test1
 ```
 The output will either be a PDF or a EPUB, depending on the document type
 
-The following example downloads test1 and test2 remotely. This example assumes the devices network ip is `10.0.0.43`.
+The following example downloads test1 and /myfolder/test2 remotely. This example assumes the devices network ip is `10.0.0.43`.
 ```sh
-$ bash repull.sh -r 10.0.0.43 test1 test2
+$ bash repull.sh -r 10.0.0.43 /test1 /myfolder/test2
 ```

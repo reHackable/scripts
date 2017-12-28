@@ -79,6 +79,43 @@ function download {
   fi
 }
 
+# Recursively Search File(s)
+
+# $1 - UUID of parent
+# $2 - Path array
+# $3 - Current Itteration
+function find {
+  OLD_IFS=$IFS
+  IFS='/' _PATH=(${2#/}) # Sort path into array
+  IFS=$OLD_IFS
+
+  # Get the UUID of matched files
+  REGEX="\"parent\": \"$1\""
+  m1=($(echo $(ssh root@"$SSH_ADDRESS" "grep -rl '$REGEX' /home/root/.local/share/remarkable/xochitl/*.metadata") | grep -oP '[a-z0-9]*\-[a-z0-9]*\-[a-z0-9]*\-[a-z0-9]*\-[a-z0-9]*'))
+
+  REGEX="\"visibleName\": \"${_PATH[$3]}\""
+  m2=($(echo $(ssh root@"$SSH_ADDRESS" "grep -rl '$REGEX' /home/root/.local/share/remarkable/xochitl/*.metadata") | grep -oP '[a-z0-9]*\-[a-z0-9]*\-[a-z0-9]*\-[a-z0-9]*\-[a-z0-9]*'))
+
+  if [ "$m1" ] && [ "$m2" ]; then
+    for name in "${m2[@]}"; do
+      for entry in "${m1[@]}"; do
+        if [[ "$name" == "$entry" ]]; then
+          matches+=("$name")
+        fi
+      done
+    done
+  fi
+
+  for match in "${matches[@]}"; do
+    if [ "$(expr $3 + 1)" -eq "${#_PATH[@]}" ]; then # End of path
+      FOUND+=($match);
+    else
+      matches=()
+      find "$match" "$2" "$(expr $3 + 1)"           # Expand tree
+    fi
+  done
+}
+
 # Evaluate Options/Parameters
 while getopts ":ho:r:p:" remote; do
   case "$remote" in
@@ -116,7 +153,7 @@ if [ -z "$1" ];  then
   exit -1
 fi
 
-if [ $# -gt 1 ] && [ ! -d "$OUTPUT" ]; then
+if [ "$OUTPUT" ] && [ $# -gt 1 ] && [ ! -d "$OUTPUT" ]; then
   echo "repull: Output path '$OUTPUT' is not a directory"
   exit -1
 fi
@@ -143,102 +180,53 @@ fi
 # Check if name matches document
 # this way we can prevent unecessary pulling
 echo "repull: Checking device for documents..."
-for n in "$@"; do
-  # Retrieve file name(s)/uuid(s) for visible name
-  REGEX="\"visibleName\": \"$n\""
-  GREP="grep -l -r '$REGEX' /home/root/.local/share/remarkable/xochitl/*.metadata"
-  uuid=($(ssh root@"$SSH_ADDRESS" "$GREP")) # List of matched file name(s)/uuid(s)
 
-  # Name assigned to multiple documents
-  # Prepare for a mess
-  # This was the most efficient and elegant
-  # solution I could currently come up with
-  if [ ${#uuid[@]} -gt 1 ]; then
-    REGEX='"lastModified": "[^"]*"|"parent": "[^"]*"'
-    GREP="grep -oE '$REGEX' ${uuid[*]}"
-    match=($(ssh root@"$SSH_ADDRESS" "$GREP"))
+for path in "$@"; do
 
-    # Squash matches to one line for each file
-    for (( i=0; i < ${#match[@]}; i+=4 )); do
-      metadata[((i/3))]="${match[$i]}${match[$i+1]}${match[$i+2]}${match[$i+3]}"
-      ((j++))
-    done
+  echo "Searching for $path..."
+  find "" "$path" 0
 
-    # Sort metadata by date
-    metadata=($(printf '%s\n' "${metadata[@]}" | sort -rn -t'"' -k4))
+  if [ "$FOUND" ]; then
+    if [ "${#FOUND[@]}" -gt 1 ]; then
+      REGEX='"lastModified": "[^"]*"'
+      FOUND=( "${FOUND[@]/#//home/root/.local/share/remarkable/xochitl/}" )
+      GREP="grep -o '$REGEX' ${FOUND[@]/%/.metadata}"
+      match="$(ssh root@"$SSH_ADDRESS" "$GREP")"
 
-    # Create synchronized arrays consisting of file metadata
-    uuid=($(echo "${metadata[@]}" | grep -o '[a-z0-9]*\-[a-z0-9]*\-[a-z0-9]*\-[a-z0-9]*\-[a-z0-9]*' | awk 'NR == 1 || NR % 3 == 0')) # UUIDs sorted by date
-    lastModified=($(echo "${metadata[@]}" | grep -o '"lastModified":"[0-9]*"' | grep -o '[0-9]*'))                                   # Date and time of last modification
+      # Sort metadata by date
+      metadata=($(echo $match | sed "s/ //g" | sort -rn -t'"' -k4))
 
-    # Retrieve parent(s)/path of file
-    for (( i=0; i < ${#metadata[@]}; i++ )); do
-      puuid="$(echo "${metadata[$i]}" | grep -o '"parent":"[^"]*"' | grep -o '[a-z0-9]*\-[a-z0-9]*\-[a-z0-9]*\-[a-z0-9]*\-[a-z0-9]*')"
-
-      # File is child, recursively fetch its path
-      while [ ! -z "$puuid" ]; do
-        REGEX='"visibleName": "[^"]*"|"parent": "[^"]*"'
-        GREP="grep -oE '$REGEX' /home/root/.local/share/remarkable/xochitl/$puuid.metadata"
-        match="$(ssh root@"$SSH_ADDRESS" "$GREP")"
-
-        parent[$i]+="/$(echo "$match" | grep -oP '(?<=visibleName": ")[^"]*(?=")')"
-        puuid="$(echo "$match" | grep -oP '(?<=parent": ")[^"]*(?=")')"
-      done
-    done
-
-    echo
-    echo "'$n' matches multiple documents!"
-    while true; do
-      echo
-
-      # Display file id's from most recently modified to oldest
-      for (( i=0; i<${#uuid[@]}; i++ )); do
-        echo -e "  $(expr $i + 1).\t${uuid[$i]}\tLast modified $(date -d @$(expr ${lastModified[$i]} / 1000) '+%Y-%m-%d %H:%M:%S')\t${parent[$i]}/$n"
-      done
+      # Create synchronized arrays consisting of file metadata
+      uuid=($(echo "${metadata[@]}" | grep -o '[a-z0-9]*\-[a-z0-9]*\-[a-z0-9]*\-[a-z0-9]*\-[a-z0-9]*')) # UUIDs sorted by date
+      lastModified=($(echo "${metadata[@]}" | grep -o '"lastModified":"[0-9]*"' | grep -o '[0-9]*'))    # Date and time of last modification
 
       echo
-      read -r -p "Select one or more documents to be downloaded [ie. 1, 1 2 3 or 1-3]: " input
+      echo "$path matches multiple documents!"
+      while true; do
+        echo
 
-      # Input is a range
-      if [[ "$input" =~ ^([1-9][0-9]*)\ *\-\ *([1-9][0-9]*)\ *$ ]]; then
-        start=${BASH_REMATCH[1]}
-        end=${BASH_REMATCH[2]}
-        if [ "$start" -gt $i ] || [ "$end" -gt $i ] || [ "$start" -gt $end ]; then
-          echo
-          echo "Invalid order or index out of range"
-          continue
-        fi
-
-        # Fetch requested files
-        for (( i=$start-1; i<$end; i++ )); do
-          date=$(date -d @"$(expr ${lastModified[$i]} / 1000)" '+%Y%m%d%H%M%S')
-          download "$WEBUI_ADDRESS" "${uuid[i]}" "$OUTPUT" "($date)"
-          if [ $? -eq 0 ]; then
-            echo "$f: Success"
-          else
-            echo "$n($date): Failed"
-          fi
-        done
-        break
-
-      # Input is one or more numbers
-      elif [[ "$input" =~ ^([1-9][0-9]*\ *)*$ ]]; then
-
-        # Check input validity before pulling
-        INPUT_VALID=1
-        for j in $input; do
-          if [ "$j" -gt "$i" ]; then
-            echo "Index: '$j' out of range!"
-            INPUT_VALID=0
-          fi
+        # Display file id's from most recently modified to oldest
+        for (( i=0; i<${#uuid[@]}; i++ )); do
+          echo -e "$(expr $i + 1). ${uuid[$i]} - Last modified $(date -d @$(expr ${lastModified[$i]} / 1000) '+%Y-%m-%d %H:%M:%S')"
         done
 
-        if [ "$INPUT_VALID" -eq 1 ]; then
-          # Input valid, time to pull!
-          for j in $input; do
-            ((j--)) # Decrement itterator to match array index
-            date=$(date -d @"$(expr ${lastModified[$j]} / 1000)" '+%Y%m%d%H%M%S')
-            download "$WEBUI_ADDRESS" "${uuid[j]}" "$OUTPUT" "($date)"
+        echo
+        read -r -p "Select one or more documents to be downloaded [ie. 1, 1 2 3 or 1-3]: " input
+
+        # Input is a range
+        if [[ "$input" =~ ^([1-9][0-9]*)\ *\-\ *([1-9][0-9]*)\ *$ ]]; then
+          start=${BASH_REMATCH[1]}
+          end=${BASH_REMATCH[2]}
+          if [ "$start" -gt $i ] || [ "$end" -gt $i ] || [ "$start" -gt $end ]; then
+            echo
+            echo "Invalid order or index out of range"
+            continue
+          fi
+
+          # Fetch requested files
+          for (( i=$start-1; i<$end; i++ )); do
+            date=$(date -d @"$(expr ${lastModified[$i]} / 1000)" '+%Y%m%d%H%M%S')
+            download "$WEBUI_ADDRESS" "${uuid[i]}" "$OUTPUT" "($date)"
             if [ $? -eq 0 ]; then
               echo "$f: Success"
             else
@@ -246,32 +234,51 @@ for n in "$@"; do
             fi
           done
           break
+
+        # Input is one or more numbers
+        elif [[ "$input" =~ ^([1-9][0-9]*\ *)*$ ]]; then
+
+          # Check input validity before pulling
+          INPUT_VALID=1
+          for j in $input; do
+            if [ "$j" -gt "$i" ]; then
+              echo "Index: '$j' out of range!"
+              INPUT_VALID=0
+            fi
+          done
+
+          if [ "$INPUT_VALID" -eq 1 ]; then
+            # Input valid, time to pull!
+            for j in $input; do
+              ((j--)) # Decrement itterator to match array index
+              date=$(date -d @"$(expr ${lastModified[$j]} / 1000)" '+%Y%m%d%H%M%S')
+              download "$WEBUI_ADDRESS" "${uuid[j]}" "$OUTPUT" "($date)"
+              if [ $? -eq 0 ]; then
+                echo "$f: Success"
+              else
+                echo "$n($date): Failed"
+              fi
+            done
+            break
+          fi
         fi
-
-      # Input is invalid
-      else
-        echo
-        echo "Invalid input"
-      fi
-    done
-
-  # Fetch document assigned to name
-elif [ ! -z "$uuid" ]; then
-    uuid=$(echo "$uuid" | grep -o '[a-z0-9]*\-[a-z0-9]*\-[a-z0-9]*\-[a-z0-9]*\-[a-z0-9]*')
-    download "$WEBUI_ADDRESS" "$uuid" "$OUTPUT" ""
-    if [ $? -eq 0 ]; then
-      echo "$f: Success"
+      done
     else
-      echo "$n($date): Failed"
+      echo "Document found!"
+      echo "Downloading document..."
+      download "$WEBUI_ADDRESS" "$FOUND" "$OUTPUT" ""
+      if [ $? -eq 0 ]; then
+        echo "$f: Success"
+      else
+        echo "$path: Failed"
+      fi
     fi
-
-  # Document not found
   else
-    echo "Unable to find document for '$n'"
+    echo "Unable to find document for '$path'"
   fi
 done
 
 if [ "$REMOTE" ]; then
-  ssh -S remarkable-web-ui -O exit root@10.0.0.43
+  ssh -S remarkable-web-ui -O exit root@"$SSH_ADDRESS"
   echo "repull: Closed conenction to the reMarkable web interface"
 fi
