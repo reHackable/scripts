@@ -91,10 +91,10 @@ function find {
 
   # Get the UUID of matched files
   REGEX="\"parent\": \"$1\""
-  m1=($(echo $(ssh root@"$SSH_ADDRESS" "grep -rl '$REGEX' /home/root/.local/share/remarkable/xochitl/*.metadata") | grep -oP '[a-z0-9]*\-[a-z0-9]*\-[a-z0-9]*\-[a-z0-9]*\-[a-z0-9]*'))
+  m1=($(echo $(ssh root@"$SSH_ADDRESS" "grep -l '$REGEX' /home/root/.local/share/remarkable/xochitl/*.metadata") | grep -oP '[a-z0-9]*\-[a-z0-9]*\-[a-z0-9]*\-[a-z0-9]*\-[a-z0-9]*'))
 
   REGEX="\"visibleName\": \"${_PATH[$3]}\""
-  m2=($(echo $(ssh root@"$SSH_ADDRESS" "grep -rl '$REGEX' /home/root/.local/share/remarkable/xochitl/*.metadata") | grep -oP '[a-z0-9]*\-[a-z0-9]*\-[a-z0-9]*\-[a-z0-9]*\-[a-z0-9]*'))
+  m2=($(echo $(ssh root@"$SSH_ADDRESS" "grep -l '$REGEX' /home/root/.local/share/remarkable/xochitl/*.metadata") | grep -oP '[a-z0-9]*\-[a-z0-9]*\-[a-z0-9]*\-[a-z0-9]*\-[a-z0-9]*'))
 
   if [ "$m1" ] && [ "$m2" ]; then
     for name in "${m2[@]}"; do
