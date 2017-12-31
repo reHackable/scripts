@@ -99,7 +99,7 @@ function find {
   GREP_F_BY_VISIBLE_NAME="grep -l '$REGEX_BY_VISIBLE_NAME'"
   GREP_F_BY_PARENT="grep -l '$REGEX_BY_PARENT'"
 
-  matches=($(echo $(ssh root@"$SSH_ADDRESS" "$GREP_F_BY_PARENT \$($GREP_F_BY_VISIBLE_NAME \$($GREP_F_NOT_DELETED /home/root/.local/share/remarkable/xochitl/*.metadata))") | grep -o '[a-z0-9]*\-[a-z0-9]*\-[a-z0-9]*\-[a-z0-9]*\-[a-z0-9]*'))
+  matches=($(echo $(ssh -S remarkable-ssh root@"$SSH_ADDRESS" "$GREP_F_BY_PARENT \$($GREP_F_BY_VISIBLE_NAME \$($GREP_F_NOT_DELETED /home/root/.local/share/remarkable/xochitl/*.metadata))") | grep -o '[a-z0-9]*\-[a-z0-9]*\-[a-z0-9]*\-[a-z0-9]*\-[a-z0-9]*'))
 
   for match in "${matches[@]}"; do
     if [ "$(expr $3 + 1)" -eq "${#_PATH[@]}" ]; then # End of path
@@ -161,7 +161,7 @@ if [ "$REMOTE" ]; then
   fi
 
   # Open SSH tunnel for the WebUI
-  ssh -M -S remarkable-web-ui -q -f -L "$PORT":"$WEBUI_ADDRESS" root@"$SSH_ADDRESS" -N;
+  ssh -M -S remarkable-ssh -q -f -L "$PORT":"$WEBUI_ADDRESS" root@"$SSH_ADDRESS" -N;
 
   if ! nc -z localhost "$PORT" > /dev/null; then
     echo "repull: Failed to establish connection with the device!"
@@ -170,6 +170,8 @@ if [ "$REMOTE" ]; then
 
   WEBUI_ADDRESS="localhost:$PORT"
   echo "repull: Established remote connection to the reMarkable web interface"
+else
+  ssh -M -S remarkable-ssh -q -f root@"$SSH_ADDRESS" -N
 fi
 
 # Check if name matches document
@@ -186,7 +188,7 @@ for path in "$@"; do
       REGEX='"lastModified": "[^"]*"'
       FOUND=( "${FOUND[@]/#//home/root/.local/share/remarkable/xochitl/}" )
       GREP="grep -o '$REGEX' ${FOUND[@]/%/.metadata}"
-      match="$(ssh root@"$SSH_ADDRESS" "$GREP")"
+      match="$(ssh -S remarkable-ssh root@"$SSH_ADDRESS" "$GREP")"
 
       # Sort metadata by date
       metadata=($(echo $match | sed "s/ //g" | sort -rn -t'"' -k4))
@@ -273,7 +275,4 @@ for path in "$@"; do
   fi
 done
 
-if [ "$REMOTE" ]; then
-  ssh -S remarkable-web-ui -O exit root@"$SSH_ADDRESS"
-  echo "repull: Closed conenction to the reMarkable web interface"
-fi
+ssh -S remarkable-ssh -O exit root@"$SSH_ADDRESS"
