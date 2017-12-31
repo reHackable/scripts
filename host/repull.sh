@@ -89,22 +89,17 @@ function find {
   IFS='/' _PATH=(${2#/}) # Sort path into array
   IFS=$OLD_IFS
 
-  # Get the UUID of matched files
-  REGEX="\"parent\": \"$1\""
-  m1=($(echo $(ssh root@"$SSH_ADDRESS" "grep -l '$REGEX' /home/root/.local/share/remarkable/xochitl/*.metadata") | grep -oP '[a-z0-9]*\-[a-z0-9]*\-[a-z0-9]*\-[a-z0-9]*\-[a-z0-9]*'))
+  # Nested greps are nightmare to debug, trust me...
 
-  REGEX="\"visibleName\": \"${_PATH[$3]}\""
-  m2=($(echo $(ssh root@"$SSH_ADDRESS" "grep -l '$REGEX' /home/root/.local/share/remarkable/xochitl/*.metadata") | grep -oP '[a-z0-9]*\-[a-z0-9]*\-[a-z0-9]*\-[a-z0-9]*\-[a-z0-9]*'))
+  REGEX_NOT_DELETED='"deleted": false'
+  REGEX_BY_VISIBLE_NAME="\\\"visibleName\": \\\"${_PATH[$3]}\\\""
+  REGEX_BY_PARENT="\\\"parent\\\": \\\"$1\\\""
 
-  if [ "$m1" ] && [ "$m2" ]; then
-    for name in "${m2[@]}"; do
-      for entry in "${m1[@]}"; do
-        if [[ "$name" == "$entry" ]]; then
-          matches+=("$name")
-        fi
-      done
-    done
-  fi
+  GREP_F_NOT_DELETED="grep -l '$REGEX_NOT_DELETED'"
+  GREP_F_BY_VISIBLE_NAME="grep -l '$REGEX_BY_VISIBLE_NAME'"
+  GREP_F_BY_PARENT="grep -l '$REGEX_BY_PARENT'"
+
+  matches=($(echo $(ssh root@"$SSH_ADDRESS" "$GREP_F_BY_PARENT \$($GREP_F_BY_VISIBLE_NAME \$($GREP_F_NOT_DELETED /home/root/.local/share/remarkable/xochitl/*.metadata))") | grep -o '[a-z0-9]*\-[a-z0-9]*\-[a-z0-9]*\-[a-z0-9]*\-[a-z0-9]*'))
 
   for match in "${matches[@]}"; do
     if [ "$(expr $3 + 1)" -eq "${#_PATH[@]}" ]; then # End of path
@@ -265,7 +260,7 @@ for path in "$@"; do
       done
     else
       echo "Document found!"
-      echo "Downloading document..."
+      echo "Downloading..."
       download "$WEBUI_ADDRESS" "$FOUND" "$OUTPUT" ""
       if [ $? -eq 0 ]; then
         echo "$f: Success"
