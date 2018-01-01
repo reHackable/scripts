@@ -153,7 +153,8 @@ if [ "$OUTPUT" ] && [ $# -gt 1 ] && [ ! -d "$OUTPUT" ]; then
   exit -1
 fi
 
-# Remote transfers (-r)
+echo "Attempting to establish connection with the device..."
+
 if [ "$REMOTE" ]; then
   if nc -z localhost "$PORT" > /dev/null; then
     echo "repull: Port $PORT is already used by a different process!"
@@ -173,6 +174,8 @@ if [ "$REMOTE" ]; then
 else
   ssh -M -S remarkable-ssh -q -f root@"$SSH_ADDRESS" -N
 fi
+
+echo "Successfully established connection to device!"
 
 # Check if name matches document
 # this way we can prevent unecessary pulling
