@@ -227,7 +227,7 @@ for path in "$@"; do
             if [ $? -eq 0 ]; then
               echo "$f: Success"
             else
-              echo "$n($date): Failed"
+              echo "$(basename "$path")($date): Failed"
             fi
           done
           break
@@ -253,7 +253,7 @@ for path in "$@"; do
               if [ $? -eq 0 ]; then
                 echo "$f: Success"
               else
-                echo "$n($date): Failed"
+                echo "$(basename "$path")($date): Failed"
               fi
             done
             break
