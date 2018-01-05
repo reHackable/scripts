@@ -95,11 +95,18 @@ function find {
   REGEX_BY_VISIBLE_NAME="\\\"visibleName\": \\\"${_PATH[$3]}\\\""
   REGEX_BY_PARENT="\\\"parent\\\": \\\"$1\\\""
 
+  if [ "$(expr $3 + 1)" -eq "${#_PATH[@]}" ]; then   # Last entry must be of Document Type ( Document/File )
+    REGEX_BY_TYPE='"type": "DocumentType"'
+  else                                               # Otherwise, it must be of Collection Type ( Directory )
+    REGEX_BY_TYPE='"type": "CollectionType"'
+  fi
+
   GREP_F_NOT_DELETED="grep -l '$REGEX_NOT_DELETED'"
+  GREP_F_BY_TYPE="grep -l '$REGEX_BY_TYPE'"
   GREP_F_BY_VISIBLE_NAME="grep -l '$REGEX_BY_VISIBLE_NAME'"
   GREP_F_BY_PARENT="grep -l '$REGEX_BY_PARENT'"
 
-  matches=($(echo $(ssh -S remarkable-ssh root@"$SSH_ADDRESS" "$GREP_F_BY_PARENT \$($GREP_F_BY_VISIBLE_NAME \$($GREP_F_NOT_DELETED /home/root/.local/share/remarkable/xochitl/*.metadata))") | grep -o '[a-z0-9]*\-[a-z0-9]*\-[a-z0-9]*\-[a-z0-9]*\-[a-z0-9]*'))
+  matches=($(echo $(ssh -S remarkable-ssh root@"$SSH_ADDRESS" "$GREP_F_BY_PARENT \$($GREP_F_BY_VISIBLE_NAME \$($GREP_F_BY_TYPE \$($GREP_F_NOT_DELETED /home/root/.local/share/remarkable/xochitl/*.metadata)))") | grep -o '[a-z0-9]*\-[a-z0-9]*\-[a-z0-9]*\-[a-z0-9]*\-[a-z0-9]*'))
 
   for match in "${matches[@]}"; do
     if [ "$(expr $3 + 1)" -eq "${#_PATH[@]}" ]; then # End of path
