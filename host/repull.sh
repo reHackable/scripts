@@ -79,6 +79,17 @@ function download {
   fi
 }
 
+# Grep remote fs (grep on reMarkable)
+
+# $1 - flags
+# $2 - regex
+# $3 - File(s)
+
+# $RET - Match(es)
+function rmtgrep {
+  RET="$(ssh root@10.11.99.1 "grep -$1 '$2' $3")"
+}
+
 # Recursively Search File(s)
 
 # $1 - UUID of parent
@@ -101,19 +112,23 @@ function find {
     REGEX_BY_TYPE='"type": "CollectionType"'
   fi
 
-  GREP_F_NOT_DELETED="grep -l '$REGEX_NOT_DELETED'"
-  GREP_F_BY_TYPE="grep -l '$REGEX_BY_TYPE'"
-  GREP_F_BY_VISIBLE_NAME="grep -l '$REGEX_BY_VISIBLE_NAME'"
-  GREP_F_BY_PARENT="grep -l '$REGEX_BY_PARENT'"
+  # Regex order has been optimized
+  FILTER=( "$REGEX_BY_VISIBLE_NAME" "$REGEX_BY_PARENT" "$REGEX_BY_TYPE" "$REGEX_NOT_DELETED" )
+  RET="/home/root/.local/share/remarkable/xochitl/*.metadata" # Overwritten by rmtgrep
+  for regex in "${FILTER[@]}"; do
+    rmtgrep "l" "$regex" "$(echo $RET | tr '\n' ' ')"
+    if [ -z "$RET" ]; then
+      break
+    fi
+  done
 
-  matches=($(echo $(ssh -S remarkable-ssh root@"$SSH_ADDRESS" "$GREP_F_BY_PARENT \$($GREP_F_BY_VISIBLE_NAME \$($GREP_F_BY_TYPE \$($GREP_F_NOT_DELETED /home/root/.local/share/remarkable/xochitl/*.metadata)))") | grep -o '[a-z0-9]*\-[a-z0-9]*\-[a-z0-9]*\-[a-z0-9]*\-[a-z0-9]*'))
-
+  matches=( $(echo "$RET" | grep -o '[a-z0-9]*\-[a-z0-9]*\-[a-z0-9]*\-[a-z0-9]*\-[a-z0-9]*') )
   for match in "${matches[@]}"; do
     if [ "$(expr $3 + 1)" -eq "${#_PATH[@]}" ]; then # End of path
       FOUND+=($match);
     else
       matches=()
-      find "$match" "$2" "$(expr $3 + 1)"           # Expand tree
+      find "$match" "$2" "$(expr $3 + 1)"            # Expand tree
     fi
   done
 }
