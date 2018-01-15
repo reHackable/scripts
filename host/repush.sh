@@ -213,6 +213,13 @@ if [ "$OUTPUT" ]; then
   echo "==================================================================================================================================="
   echo
 
+  RFKILL="$(ssh root@"$SSH_ADDRESS" "/usr/sbin/rfkill list 0 | grep 'blocked: yes'")"
+  if [ -z "$RFKILL" ]; then
+    echo "Temporarily disabling Wi-Fi to prevent conflicts with the cloud"
+    ssh root@"$SSH_ADDRESS" "/usr/sbin/rfkill block 0"
+    echo
+  fi
+
   for f in "$@"; do
     TMP="/tmp/repush"
     rm -rf "$TMP"
@@ -221,43 +228,56 @@ if [ "$OUTPUT" ]; then
     tmpf="$TMP/$tmpfname.${f##*.}"
     cp "$f" "$tmpf"
 
-    if [ ! -f "$tmpf" ]; then
+    if [ -f "$tmpf" ]; then
+      echo "Shipping '$f'"
+
+      stat=""
+      attempt=""
+      while [[ ! "$stat" && "$attempt" != "n" ]]; do
+        if curl --connect-timeout 2 --silent --output /dev/null --form file=@"\"$tmpf\"" http://"$WEBUI_ADDRESS"/upload; then
+          stat=1
+          metadata="$(ssh root@"$SSH_ADDRESS" "grep -l '\"visibleName\": \"$tmpfname\"' ~/.local/share/remarkable/xochitl/*.metadata")"
+          if [ "$metadata" ]; then
+            ssh root@"$SSH_ADDRESS" "sed -i 's/\"parent\": \"[^\"]*\"/\"parent\": \"$OUTPUT_UUID\"/' $metadata && sed -i 's/\"visibleName\": \"[^\"]*\"/\"visibleName\": \"${f%.*}\"/' $metadata"
+            ((success++))
+            echo "$f: Success"
+            echo
+          else
+            echo "Failed to access remote metdata for '$tmpfname'"
+          fi
+        else
+          stat=""
+          echo "$f: Failed"
+          read -r -p "Failed to push file! Retry? [Y/n]: "
+        fi
+      done
+
+    else
       echo "Failed to prepare '$f' for shipping"
     fi
 
-    echo "Shipping '$f'"
-
-    stat=""
-    attempt=""
-    while [[ ! "$stat" && "$attempt" != "n" ]]; do
-      if curl --connect-timeout 2 --silent --output /dev/null --form file=@"\"$tmpf\"" http://"$WEBUI_ADDRESS"/upload; then
-        stat=1
-        metadata="$(ssh root@"$SSH_ADDRESS" "grep -l '\"visibleName\": \"$tmpfname\"' ~/.local/share/remarkable/xochitl/*.metadata")"
-        if [ "$metadata" ]; then
-          ssh root@"$SSH_ADDRESS" "sed -i 's/\"parent\": \"[^\"]*\"/\"parent\": \"$OUTPUT_UUID\"/' $metadata && sed -i 's/\"visibleName\": \"[^\"]*\"/\"visibleName\": \"${f%.*}\"/' $metadata"
-          ((success++))
-          echo "$f: Success"
-          echo
-        else
-          echo "Failed to access remote metdata for '$tmpfname'"
-        fi
-      else
-        stat=""
-        echo "$f: Failed"
-        read -r -p "Failed to push file! Retry? [Y/n]: "
-      fi
-    done
   done
 
   echo "Applying changes..."
-  echo
-  ssh root@"$SSH_ADDRESS" "systemctl restart xochitl"
+  ssh root@"$SSH_ADDRESS" "systemctl restart xochitl;"
+
+  if [ -z "$RFKILL" ]; then
+    echo "Re-enabling Wi-Fi in 5 seconds..."
+    echo
+    ssh root@"$SSH_ADDRESS" "sleep 5; /usr/sbin/rfkill unblock 0"
+  fi
+
 else
-  echo "Initiating file transfer..."
+  echo
+  echo "========================"
+  echo "Initiating file transfer"
+  echo "========================"
+  echo
   for f in "$@"; do
     stat=""
     attempt=""
     while [[ ! "$stat" && "$attempt" != "n" ]]; do
+      echo "Pushing '$f'..."
       if curl --connect-timeout 2 --silent --output /dev/null --form file=@"\"$f\"" http://"$WEBUI_ADDRESS"/upload; then
         stat=1
         echo "$f: Success"
@@ -271,6 +291,8 @@ else
         fi
 
         ((success++))
+
+        echo
       else
         stat=""
         echo "$f: Failed"
