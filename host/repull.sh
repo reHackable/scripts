@@ -93,7 +93,7 @@ function rmtgrep {
 # Recursively Search File(s)
 
 # $1 - UUID of parent
-# $2 - Path array
+# $2 - Path
 # $3 - Current Itteration
 function find {
   OLD_IFS=$IFS
