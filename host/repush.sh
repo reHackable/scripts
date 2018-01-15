@@ -32,9 +32,10 @@ WEBUI_ADDRESS="10.11.99.1:80"
 PORT=9000 # Deault port to which the webui is tunneled to
 
 function usage {
-  echo "Usage: repush.sh [-d] [-r ip] [-p port] doc1 [doc2 ...]"
+  echo "Usage: repush.sh [-o output] [-d] [-r ip] [-p port] doc1 [doc2 ...]"
   echo
   echo "Options:"
+  echo -e "-o\t\t\tOutput directory to which the provided files will be uploaded to" 
   echo -e "-d\t\t\tDelete file after successful push"
   echo -e "-r\t\t\tPush remotely via ssh tunneling"
   echo -e "-p\t\t\tIf -r has been given, this option defines port to which the webui will be tunneled (default 9000)"

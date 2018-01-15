@@ -32,12 +32,13 @@ In order for this script to work, the reMarkable web interface must be enabled f
 
 ### Usage:
 ```
-Usage: repush.sh [-d] [-r ip] [-p port] doc1 [doc2 ...]
+Usage: repush.sh [-o output] [-d] [-r ip] [-p port] doc1 [doc2 ...]
 
 Options:
--d                      Delete file after successful push
--r                      Push remotely via ssh tunneling
--p                      If -r has been given, this option defines port to which the webui will be tunneled (default 9000)
+-o			Output directory to which the provided files will be uploaded to
+-d			Delete file after successful push
+-r			Push remotely via ssh tunneling
+-p			If -r has been given, this option defines port to which the webui will be tunneled (default 9000)
 ```
 
 ### Example:
@@ -49,6 +50,11 @@ $ bash repush.sh test1.pdf test2.pdf
 The following example pushes test1.pdf and test2.pdf remotely. This example assumes the devices network ip is `10.0.0.43`.
 ```sh
 $ bash repush.sh -r 10.0.0.43 test1.pdf test2.pdf
+```
+
+The following example pushes test1.pdf and test2.pdf to /Test/Directory/
+```sh
+$ bash repush.sh -o /Test/Directory test1.pdf test2.pdf
 ```
 
 ## repull.sh
