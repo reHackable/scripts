@@ -235,6 +235,10 @@ if [ "$OUTPUT" ]; then
       attempt=""
       while [[ ! "$stat" && "$attempt" != "n" ]]; do
         if curl --connect-timeout 2 --silent --output /dev/null --form file=@"\"$tmpf\"" http://"$WEBUI_ADDRESS"/upload; then
+
+          # Give device time to generate metadata file
+          sleep 0.1
+
           stat=1
           metadata="$(ssh root@"$SSH_ADDRESS" "grep -l '\"visibleName\": \"$tmpfname\"' ~/.local/share/remarkable/xochitl/*.metadata")"
           if [ "$metadata" ]; then
