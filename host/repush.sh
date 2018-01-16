@@ -35,7 +35,7 @@ function usage {
   echo "Usage: repush.sh [-o output] [-d] [-r ip] [-p port] doc1 [doc2 ...]"
   echo
   echo "Options:"
-  echo -e "-o\t\t\tOutput directory to which the provided files will be uploaded to" 
+  echo -e "-o\t\t\tOutput directory to which the provided files will be uploaded to"
   echo -e "-d\t\t\tDelete file after successful push"
   echo -e "-r\t\t\tPush remotely via ssh tunneling"
   echo -e "-p\t\t\tIf -r has been given, this option defines port to which the webui will be tunneled (default 9000)"
@@ -49,7 +49,7 @@ function usage {
 
 # $RET - Match(es)
 function rmtgrep {
-  RET="$(ssh root@"$SSH_ADDRESS" "grep -$1 '$2' $3")"
+  RET="$(ssh -S remarkable-ssh root@"$SSH_ADDRESS" "grep -$1 '$2' $3")"
 }
 
 # Recursively Search File(s)
@@ -143,24 +143,27 @@ for f in "$@"; do
   fi
 done
 
-# Remote transfers (-r)
-if [ "$SSH_ADDRESS" ]; then
+if [ "$REMOTE" ]; then
   if nc -z localhost "$PORT" > /dev/null; then
-    echo "Port $PORT is already used by a different process!"
+    echo "repull: Port $PORT is already used by a different process!"
     exit -1
   fi
 
   # Open SSH tunnel for the WebUI
-  ssh -M -S remarkable-web-ui -q -f -L "$PORT":"$WEBUI_ADDRESS" root@"$SSH_ADDRESS" -N;
+  ssh -M -S remarkable-ssh -q -f -L "$PORT":"$WEBUI_ADDRESS" root@"$SSH_ADDRESS" -N;
 
   if ! nc -z localhost "$PORT" > /dev/null; then
-    echo "Failed to establish connection with the device!"
+    echo "repull: Failed to establish connection with the device!"
     exit -1
   fi
 
   WEBUI_ADDRESS="localhost:$PORT"
-  echo "Established remote connection to the reMarkable web interface"
+  echo "repull: Established remote connection to the reMarkable web interface"
+else
+  ssh -M -S remarkable-ssh -q -f root@"$SSH_ADDRESS" -N
 fi
+
+echo "Successfully established connection to device!"
 
 success=0
 
@@ -214,10 +217,10 @@ if [ "$OUTPUT" ]; then
   echo "==================================================================================================================================="
   echo
 
-  RFKILL="$(ssh root@"$SSH_ADDRESS" "/usr/sbin/rfkill list 0 | grep 'blocked: yes'")"
+  RFKILL="$(ssh -S remarkable-ssh root@"$SSH_ADDRESS" "/usr/sbin/rfkill list 0 | grep 'blocked: yes'")"
   if [ -z "$RFKILL" ]; then
     echo "Temporarily disabling Wi-Fi to prevent conflicts with the cloud"
-    ssh root@"$SSH_ADDRESS" "/usr/sbin/rfkill block 0"
+    ssh -S remarkable-ssh root@"$SSH_ADDRESS" "/usr/sbin/rfkill block 0"
     echo
   fi
 
@@ -241,9 +244,9 @@ if [ "$OUTPUT" ]; then
           sleep 0.1
 
           stat=1
-          metadata="$(ssh root@"$SSH_ADDRESS" "grep -l '\"visibleName\": \"$tmpfname\"' ~/.local/share/remarkable/xochitl/*.metadata")"
+          metadata="$(ssh -S remarkable-ssh root@"$SSH_ADDRESS" "grep -l '\"visibleName\": \"$tmpfname\"' ~/.local/share/remarkable/xochitl/*.metadata")"
           if [ "$metadata" ]; then
-            ssh root@"$SSH_ADDRESS" "sed -i 's/\"parent\": \"[^\"]*\"/\"parent\": \"$OUTPUT_UUID\"/' $metadata && sed -i 's/\"visibleName\": \"[^\"]*\"/\"visibleName\": \"${f%.*}\"/' $metadata"
+            ssh -S remarkable-ssh root@"$SSH_ADDRESS" "sed -i 's/\"parent\": \"[^\"]*\"/\"parent\": \"$OUTPUT_UUID\"/' $metadata && sed -i 's/\"visibleName\": \"[^\"]*\"/\"visibleName\": \"${f%.*}\"/' $metadata"
             ((success++))
             echo "$f: Success"
             echo
@@ -264,12 +267,12 @@ if [ "$OUTPUT" ]; then
   done
 
   echo "Applying changes..."
-  ssh root@"$SSH_ADDRESS" "systemctl restart xochitl;"
+  ssh -S remarkable-ssh root@"$SSH_ADDRESS" "systemctl restart xochitl;"
 
   if [ -z "$RFKILL" ]; then
     echo "Re-enabling Wi-Fi in 5 seconds..."
     echo
-    ssh root@"$SSH_ADDRESS" "sleep 5; /usr/sbin/rfkill unblock 0"
+    ssh -S remarkable-ssh root@"$SSH_ADDRESS" "sleep 5; /usr/sbin/rfkill unblock 0"
   fi
 
 else
@@ -307,9 +310,5 @@ else
   done
 fi
 
-if [ "$SSH_ADDRESS" ]; then
-  ssh -S remarkable-web-ui -O exit root@"$SSH_ADDRESS"
-  echo "Closed conenction to the reMarkable web interface"
-fi
-
+ssh -S remarkable-ssh -O exit root@"$SSH_ADDRESS"
 echo "Successfully transferred $success out of "$#" documents"
