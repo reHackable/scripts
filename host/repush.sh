@@ -228,8 +228,9 @@ if [ "$OUTPUT" ]; then
     TMP="/tmp/repush"
     rm -rf "$TMP"
     mkdir -p "$TMP"
-    tmpfname=_tmp_repush_"${f%.*}"_tmp_repush_
-    tmpf="$TMP/$tmpfname.${f##*.}"
+    basename="$(basename $f)"
+    tmpfname=_tmp_repush_"${basename%.*}"_tmp_repush_
+    tmpf="$TMP/$tmpfname.${basename##*.}"
     cp "$f" "$tmpf"
 
     if [ -f "$tmpf" ]; then
