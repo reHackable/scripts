@@ -11,6 +11,7 @@ connection to your reMarkable, either trough USB or Wireless.
 - rezone.sh
 - repush.sh
 - repull.sh
+- clean.sh
 
 ## [Client](client/)
 All scripts that fall under this category are client-sided scripts. In other words, these scripts
