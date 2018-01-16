@@ -91,3 +91,31 @@ The following example downloads test1 and /myfolder/test2 remotely. This example
 ```sh
 $ bash repull.sh -r 10.0.0.43 /test1 /myfolder/test2
 ```
+
+## clean.sh
+> [Source](https://github.com/reHackable/scripts/blob/master/host/clean.sh)
+
+A host sided script that removes unwanted junk on your reMarkable.
+
+The following is classified as junk:
+
+- Metadata of deleted documents
+- Documents that have no metadata assigned
+
+This script may conflict with the cloud as it ignores the original purpose of the "deleted" attribute
+in metadata files. Upon conflict, the device will re-download the deleted document from the cloud as soon
+as connection can be established. That is, unless the file wasn't uploaded to the cloud in first place.
+
+### Usage:
+```
+Usage: clean.sh [-h | ssh address]
+
+Options:
+-h			Display script usage
+ip			SSH address of the device (default set to 10.11.99.1)
+```
+
+### Example:
+```sh
+$ bash clean.sh
+```
