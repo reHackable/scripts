@@ -56,7 +56,7 @@ fi
 
 echo "Successfully established connection, please do not lock your device until the script has completed!"
 
-read -p "Search for metadata from deleted documents [y/N]: " input
+read -rp "Search for metadata from deleted documents [y/N]: " input
 
 # Deleted attribute set to "true"
 if [[ "$input" =~ [yY] ]]; then
@@ -80,11 +80,11 @@ if [[ "$input" =~ [yY] ]]; then
     proceed=""
 
     while [[ ! "$proceed" =~ [YyNn] ]]; do
-      read -p "Proceed: [y/n]: " proceed
+      read -rp "Proceed: [y/n]: " proceed
 
       if [[ "$proceed" =~ [Yy] ]]; then
         echo "Deleting files..."
-        $(ssh root@"$SSH_ADDRESS" "rm -R $(echo "${uuid[@]}" | sed -E "s/([a-z0-9]*\-[a-z0-9]*\-[a-z0-9]*\-[a-z0-9]*\-[a-z0-9]*).[^ ]*/\1\*/g")")
+        ssh root@"$SSH_ADDRESS" "rm -R $(echo "${uuid[@]}" | sed -E "s/([a-z0-9]*\-[a-z0-9]*\-[a-z0-9]*\-[a-z0-9]*\-[a-z0-9]*).[^ ]*/\1\*/g")"
       fi
     done
   else
@@ -94,7 +94,7 @@ if [[ "$input" =~ [yY] ]]; then
   fi
 fi
 
-read -p "Search for files and directories without metadata [y/N]: " input
+read -rp "Search for files and directories without metadata [y/N]: " input
 
 # Files or directories with missing metadata
 if [[ "$input" =~ [yY] ]]; then
@@ -104,7 +104,7 @@ if [[ "$input" =~ [yY] ]]; then
 
   # Compare uuid of metadata files with uuid of all files not ending with .metadata
   # This way the file with missing a missing metadata file will stand out
-  uuid=($(echo ${assigned[@]} ${unassigned[@]} | tr ' ' '\n' | sort | uniq -u))
+  uuid=($(echo "${assigned[@]}" "${unassigned[@]}" | tr ' ' '\n' | sort | uniq -u))
   uuid=(${uuid[@]/#/"~/.local/share/remarkable/xochitl/"})
   uuid=(${uuid[@]/%/"*"})
 
@@ -122,10 +122,10 @@ if [[ "$input" =~ [yY] ]]; then
     proceed=""
 
     while [[ ! "$proceed" =~ [YyNn] ]]; do
-      read -p "Proceed: [y/n]: " proceed
+      read -rp "Proceed: [y/n]: " proceed
       if [[ "$proceed" =~ [Yy] ]]; then
         echo "Deleting files..."
-        $(ssh root@"$SSH_ADDRESS" "rm -R $(echo "${uuid[@]}")")
+        ssh root@"$SSH_ADDRESS" "rm -R $(echo "${uuid[@]}")"
       fi
     done
   else

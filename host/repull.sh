@@ -134,8 +134,8 @@ function find {
 }
 
 # Evaluate Options/Parameters
-while getopts ":ho:r:p:" remote; do
-  case "$remote" in
+while getopts ":ho:r:p:" opt; do
+  case "$opt" in
     o) # Output path
       OUTPUT="$OPTARG"
       ;;

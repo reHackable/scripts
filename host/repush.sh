@@ -73,7 +73,7 @@ function find {
   FILTER=( "$REGEX_BY_VISIBLE_NAME" "$REGEX_BY_PARENT" "$REGEX_BY_TYPE" "$REGEX_NOT_DELETED" )
   RET="/home/root/.local/share/remarkable/xochitl/*.metadata" # Overwritten by rmtgrep
   for regex in "${FILTER[@]}"; do
-    rmtgrep "l" "$regex" "$(echo $RET | tr '\n' ' ')"
+    rmtgrep "l" "$regex" "$(echo "$RET" | tr '\n' ' ')"
     if [ -z "$RET" ]; then
       break
     fi
@@ -92,10 +92,11 @@ function find {
 }
 
 # Evaluate Options/Parameters
-while getopts ":hdr:p:o:" remote; do
-  case "$remote" in
+while getopts ":hdr:p:o:" opt; do
+  case "$opt" in
     r) # Push Remotely
       SSH_ADDRESS="$OPTARG"
+      REMOTE=1
       ;;
 
     p) # Tunneling Port defined
@@ -177,14 +178,14 @@ if [ "$OUTPUT" ]; then
     match="$(ssh -S remarkable-ssh root@"$SSH_ADDRESS" "$GREP")"
 
     # Sort metadata by date
-    metadata=($(echo $match | sed "s/ //g" | sort -rn -t'"' -k4))
+    metadata=($(echo "$match" | sed "s/ //g" | sort -rn -t'"' -k4))
 
     # Create synchronized arrays consisting of file metadata
     uuid=($(echo "${metadata[@]}" | grep -o '[a-z0-9]*\-[a-z0-9]*\-[a-z0-9]*\-[a-z0-9]*\-[a-z0-9]*')) # UUIDs sorted by date
     lastModified=($(echo "${metadata[@]}" | grep -o '"lastModified":"[0-9]*"' | grep -o '[0-9]*'))    # Date and time of last modification
 
     echo
-    echo "$path matches multiple directories!"
+    echo "$OUTPUT matches multiple directories!"
     while true; do
       echo
 
@@ -193,7 +194,7 @@ if [ "$OUTPUT" ]; then
         echo -e "$(expr $i + 1). ${uuid[$i]} - Last modified $(date -d @$(expr ${lastModified[$i]} / 1000) '+%Y-%m-%d %H:%M:%S')"
       done
 
-      read -p "Select your target directory: " INPUT
+      read -rp "Select your target directory: " INPUT
 
       if [ "$INPUT" -gt 0 ] && [ "$INPUT" -lt $(expr i + 1) ]; then
         OUTPUT_UUID="${uuid[(($i-1))]}"
@@ -228,7 +229,7 @@ if [ "$OUTPUT" ]; then
     TMP="/tmp/repush"
     rm -rf "$TMP"
     mkdir -p "$TMP"
-    basename="$(basename $f)"
+    basename="$(basename "$f")"
     tmpfname=_tmp_repush_"${basename%.*}"_tmp_repush_
     tmpf="$TMP/$tmpfname.${basename##*.}"
     cp "$f" "$tmpf"
@@ -312,4 +313,4 @@ else
 fi
 
 ssh -S remarkable-ssh -O exit root@"$SSH_ADDRESS"
-echo "Successfully transferred $success out of "$#" documents"
+echo "Successfully transferred $success out of $# documents"
