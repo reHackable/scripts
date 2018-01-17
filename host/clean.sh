@@ -64,7 +64,7 @@ if [[ "$input" =~ [yY] ]]; then
   echo "Note: Documents previously pushed to the cloud will be re-downloaded as soon as connection is established"
   echo
   echo "Searching for deleted files..."
-  deleted=($(ssh root@"$SSH_ADDRESS" "grep -ol '\"deleted\": true' ~/.local/share/remarkable/xochitl/*metadata"))
+  uuid=($(ssh root@"$SSH_ADDRESS" "grep -ol '\"deleted\": true' ~/.local/share/remarkable/xochitl/*metadata"))
 
   if [ "$uuid" ]; then
     echo
