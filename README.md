@@ -1,7 +1,7 @@
 # Scripts
-A set of bash scripts that may enhance your reMarkable experience
+> ### [Wiki](https://github.com/reHackable/scripts/wiki)
 
-Scripts are split into a total of 3 categories:
+A set of bash scripts that may enhance your reMarkable experience
 
 ## [Host](host/)
 All scripts that fall under this category are host-sided scripts. In other words, these scripts
