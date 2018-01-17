@@ -197,7 +197,7 @@ else
   ssh -M -S remarkable-ssh -q -f root@"$SSH_ADDRESS" -N
 fi
 
-echo "Successfully established connection to device!"
+echo "Successfully established connection, please do not lock your device until the script has completed!"
 
 # Check if name matches document
 # this way we can prevent unecessary pulling

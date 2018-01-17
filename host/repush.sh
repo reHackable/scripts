@@ -163,9 +163,9 @@ else
   ssh -M -S remarkable-ssh -q -f root@"$SSH_ADDRESS" -N
 fi
 
-echo "Successfully established connection to device!"
+echo "Successfully established connection, please do not lock your device until the script has completed!"
 
-success=0
+s=0
 
 if [ "$OUTPUT" ]; then
   find '' "$OUTPUT" '0'

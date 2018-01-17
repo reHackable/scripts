@@ -54,7 +54,7 @@ if [ "$?" -ne 0 ]; then
   exit -1
 fi
 
-echo "Successfully established connection"
+echo "Successfully established connection, please do not lock your device until the script has completed!"
 
 read -p "Search for metadata from deleted documents [y/N]: " input
 

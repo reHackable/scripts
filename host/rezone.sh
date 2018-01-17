@@ -83,7 +83,7 @@ if [ -z "$TZ" ]; then
 fi
 
 echo "Selected $TZ"
-echo "Attempting to establish connection with $SSH_ADDR"
+echo "Attempting to establish connection with $SSH_ADDR, please do not lock your device until the script has completed!"
 
 # Run
 while [[ "$input" != 'n' ]]; do
