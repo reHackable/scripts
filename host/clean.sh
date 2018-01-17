@@ -71,8 +71,8 @@ if [[ "$input" =~ [yY] ]]; then
     echo "The following deleted documents have been found: "
     echo
 
-    for uuid in "${uuid[@]}"; do
-      echo "    $uuid"
+    for f in "${uuid[@]}"; do
+      echo "    $f"
     done
 
     echo
@@ -84,7 +84,7 @@ if [[ "$input" =~ [yY] ]]; then
 
       if [[ "$proceed" =~ [Yy] ]]; then
         echo "Deleting files..."
-        $(ssh root@"$SSH_ADDRESS" "rm -Rf $(echo "${uuid[@]}" | sed -E "s/([a-z0-9]*\-[a-z0-9]*\-[a-z0-9]*\-[a-z0-9]*\-[a-z0-9]*).[^ ]*/\1\*/g")")
+        $(ssh root@"$SSH_ADDRESS" "rm -R $(echo "${uuid[@]}" | sed -E "s/([a-z0-9]*\-[a-z0-9]*\-[a-z0-9]*\-[a-z0-9]*\-[a-z0-9]*).[^ ]*/\1\*/g")")
       fi
     done
   else
@@ -113,8 +113,8 @@ if [[ "$input" =~ [yY] ]]; then
     echo "The following documents have been found: "
     echo
 
-    for uuid in "${uuid[@]}"; do
-      echo "    $uuid"
+    for f in "${uuid[@]}"; do
+      echo "    $f"
     done
 
     echo
@@ -125,7 +125,7 @@ if [[ "$input" =~ [yY] ]]; then
       read -p "Proceed: [y/n]: " proceed
       if [[ "$proceed" =~ [Yy] ]]; then
         echo "Deleting files..."
-        $(ssh root@"$SSH_ADDRESS" "rm -Rf $(echo "${uuid[@]}")")
+        $(ssh root@"$SSH_ADDRESS" "rm -R $(echo "${uuid[@]}")")
       fi
     done
   else
