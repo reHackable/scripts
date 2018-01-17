@@ -1,5 +1,6 @@
 # Scripts
-> ### [Wiki](https://github.com/reHackable/scripts/wiki)
+
+[See Wiki](https://github.com/reHackable/scripts/wiki)
 
 A set of bash scripts that may enhance your reMarkable experience
 
