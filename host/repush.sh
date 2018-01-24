@@ -230,8 +230,8 @@ if [ "$OUTPUT" ]; then
     rm -rf "$TMP"
     mkdir -p "$TMP"
     basename="$(basename "$f")"
-    tmpfname=_tmp_repush_"${basename%.*}"_tmp_repush_
-    tmpf="$TMP/$tmpfname.${basename##*.}"
+    tmpfname=_tmp_repush_"${basename%.*}"_tmp_repush_."${basename##*.}"
+    tmpf="$TMP/$tmpfname"
     cp "$f" "$tmpf"
 
     if [ -f "$tmpf" ]; then
@@ -247,8 +247,9 @@ if [ "$OUTPUT" ]; then
 
           stat=1
           metadata="$(ssh -S remarkable-ssh root@"$SSH_ADDRESS" "grep -l '\"visibleName\": \"$tmpfname\"' ~/.local/share/remarkable/xochitl/*.metadata")"
+
           if [ "$metadata" ]; then
-            ssh -S remarkable-ssh root@"$SSH_ADDRESS" "sed -i 's/\"parent\": \"[^\"]*\"/\"parent\": \"$OUTPUT_UUID\"/' $metadata && sed -i 's/\"visibleName\": \"[^\"]*\"/\"visibleName\": \"${f%.*}\"/' $metadata"
+            ssh -S remarkable-ssh root@"$SSH_ADDRESS" "sed -i 's/\"parent\": \"[^\"]*\"/\"parent\": \"$OUTPUT_UUID\"/' $metadata && sed -i 's/\"visibleName\": \"[^\"]*\"/\"visibleName\": \"$basename\"/' $metadata"
             ((success++))
             echo "$f: Success"
             echo
