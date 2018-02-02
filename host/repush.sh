@@ -258,7 +258,7 @@ if [ "$OUTPUT" ]; then
         else
           stat=""
           echo "$f: Failed"
-          read -r -p "Failed to push file! Retry? [Y/n]: "
+          read -r -p "Failed to push file! Retry? [Y/n]: " attempt
         fi
       done
 
@@ -306,7 +306,7 @@ else
       else
         stat=""
         echo "$f: Failed"
-        read -r -p "Failed to push file! Retry? [Y/n]: "
+        read -r -p "Failed to push file! Retry? [Y/n]: " attempt
       fi
     done
   done
