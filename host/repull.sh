@@ -94,6 +94,8 @@ function rmtgrep {
 # $1 - UUID of parent
 # $2 - Path
 # $3 - Current Itteration
+
+# $FOUND - List of matched UUIDs
 function find {
   OLD_IFS=$IFS
   IFS='/' _PATH=(${2#/}) # Sort path into array
