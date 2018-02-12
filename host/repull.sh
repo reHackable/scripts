@@ -27,7 +27,7 @@ SSH_ADDRESS="10.11.99.1"
 PORT=9000                     # Deault port to which the webui is tunneled to
 
 function usage {
-  echo "Usage: repull.sh [-o out] [-r ip] [-p port] docname1 [docname2 ...]"
+  echo "Usage: repull.sh [-o out] [-r ip] [-p port] path_to_doc1 [path_to_doc2 ...]"
   echo
   echo "Options:"
   echo -e "-o\t\t\tOutput file or directory"
