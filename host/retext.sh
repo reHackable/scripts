@@ -53,7 +53,7 @@ INIT_CONTENT='{
 }'
 
 function usage {
-  echo "Usage: repull.sh [-h] [-r ip] path_to_epub1 [path_to_epub2 ...]"
+  echo "Usage: repull.sh [-h] [-r ssh_address] path_to_epub1 [path_to_epub2 ...]"
   echo ""
   echo "Options:"
   echo -e "-h\t\tDisplay this usage guide"
