@@ -32,7 +32,6 @@ function usage {
   echo "Options:"
   echo -e "-o\t\t\tOutput file or directory"
   echo -e "-r\t\t\tPull remotely via ssh tunneling"
-  echo -e "-r\t\t\tPull remotely via ssh tunneling"
   echo -e "-p\t\t\tIf -r has been given, this option defines port to which the webui will be tunneled (default 9000)"
   echo
   echo "If multiple documents share the same name, the script will prompt you"
