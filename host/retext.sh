@@ -23,7 +23,7 @@
 # Notations     : As a result of the scalability that epub documents provide,
 #                the document is set back to page one
 
-#                When epubs are set back to their initial state, their cahce files are deleted.
+#                When epubs are set back to their initial state, their cache files are deleted.
 #                due to this, the epub may take some time to load on first open
 
 SSH_ADDRESS="10.11.99.1"
