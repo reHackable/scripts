@@ -12,6 +12,7 @@ connection to your reMarkable, either trough USB or Wireless.
 - rezone.sh
 - repush.sh
 - repull.sh
+- retext.sh
 - clean.sh
 
 ## Client
