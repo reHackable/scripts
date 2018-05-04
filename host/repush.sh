@@ -243,21 +243,17 @@ if [ "$OUTPUT" ]; then
       attempt=""
       while [[ ! "$stat" && "$attempt" != "n" ]]; do
         if curl --connect-timeout 2 --silent --output /dev/null --form file=@"\"$tmpf\"" http://"$WEBUI_ADDRESS"/upload; then
-
-          # Give device time to generate metadata file
-          sleep 0.1
-
           stat=1
-          metadata="$(ssh -S remarkable-ssh root@"$SSH_ADDRESS" "grep -l '\"visibleName\": \"$tmpfname\"' ~/.local/share/remarkable/xochitl/*.metadata")"
 
-          if [ "$metadata" ]; then
-            ssh -S remarkable-ssh root@"$SSH_ADDRESS" "sed -i 's/\"parent\": \"[^\"]*\"/\"parent\": \"$OUTPUT_UUID\"/' $metadata && sed -i 's/\"visibleName\": \"[^\"]*\"/\"visibleName\": \"$basename\"/' $metadata"
-            ((success++))
-            echo "$f: Success"
-            echo
-          else
-            echo "Failed to access remote metdata for '$tmpfname'"
-          fi
+          echo "Accessing metadata for '$(basename "$f")'"
+          while [ -z "$metadata" ]; do
+            metadata="$(ssh -S remarkable-ssh root@"$SSH_ADDRESS" "grep -l '\"visibleName\": \"$tmpfname\"' ~/.local/share/remarkable/xochitl/*.metadata")"
+          done
+
+          ssh -S remarkable-ssh root@"$SSH_ADDRESS" "sed -i 's/\"parent\": \"[^\"]*\"/\"parent\": \"$OUTPUT_UUID\"/' $metadata && sed -i 's/\"visibleName\": \"[^\"]*\"/\"visibleName\": \"$basename\"/' $metadata"
+          ((success++))
+          echo "$f: Success"
+          echo
         else
           stat=""
           echo "$f: Failed"
