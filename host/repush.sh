@@ -139,7 +139,7 @@ for f in "$@"; do
   if [ ! -f "$f" ]; then
     echo "No such file: $f"
     exit -1
-  elif ! file -F '|' "$f" | grep -qoP "(?<=\| )(PDF|EPUB)"; then
+  elif ! file -F '|' "$f" | grep -qoE "pdf|epub"; then
     echo "Unsupported file format: $f"
     echo "Only PDFs and EPUBs are supported"
     exit -1
