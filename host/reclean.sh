@@ -31,7 +31,7 @@
 SSH_ADDRESS="10.11.99.1"
 
 function usage {
-  echo "Usage: clean.sh [-h | ssh address]"
+  echo "Usage: reclean.sh [-h | ssh address]"
   echo
   echo "Options:"
   echo -e "-h\t\t\tDisplay script usage"
