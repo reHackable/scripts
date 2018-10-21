@@ -261,7 +261,7 @@ else
   ssh -M -S remarkable-ssh -q -f root@"$SSH_ADDRESS" -N
 fi
 
-# Create directory in /tmp/repush for placeholders or documents awaiting modification
+# Create directory in /tmp/repush for placeholders
 rm -rf "/tmp/repush"
 mkdir -p "/tmp/repush"
 
