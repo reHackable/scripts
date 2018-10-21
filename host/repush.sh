@@ -191,6 +191,11 @@ function push {
 # Evaluate Options/Parameters
 while getopts ":hdr:p:o:" opt; do
   case "$opt" in
+    h) # Usage help
+      usage
+      exit 1
+      ;;
+
     r) # Push Remotely
       SSH_ADDRESS="$OPTARG"
       REMOTE=1
@@ -206,11 +211,6 @@ while getopts ":hdr:p:o:" opt; do
 
     d) # Delete file after successful push
       DELETE_ON_PUSH=1
-      ;;
-
-    h) # Usage help
-      usage
-      exit 1
       ;;
 
     ?) # Unkown Option
