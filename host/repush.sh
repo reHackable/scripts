@@ -124,7 +124,7 @@ function uuid_of_root_file {
 # $1 - Path to document (Must be EPUB or PDF)
 
 # $RET_UUID - The fs UUID of the document
-# $? - true: transfer succeeded | false: transfer failed
+# $? - 1: transfer succeeded | 0: transfer failed
 function push {
 
   file_cmd_output="$(file -F '|' "$f")"
