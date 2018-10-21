@@ -47,9 +47,9 @@ function usage {
 # $2 - regex
 # $3 - File(s)
 
-# $RET - Match(es)
+# $RET_MATCH - Match(es)
 function rmtgrep {
-  RET="$(ssh -S remarkable-ssh root@"$SSH_ADDRESS" "grep -$1 '$2' $3")"
+  RET_MATCH="$(ssh -S remarkable-ssh root@"$SSH_ADDRESS" "grep -$1 '$2' $3")"
 }
 
 # Recursively Search File(s)
@@ -58,7 +58,7 @@ function rmtgrep {
 # $2 - Path
 # $3 - Current Itteration
 
-# $FOUND - List of matched UUIDs
+# $RET_FOUND - List of matched UUIDs
 function find {
   OLD_IFS=$IFS
   IFS='/' _PATH=(${2#/}) # Sort path into array
@@ -73,22 +73,117 @@ function find {
 
   # Regex order has been optimized
   FILTER=( "$REGEX_BY_VISIBLE_NAME" "$REGEX_BY_PARENT" "$REGEX_BY_TYPE" "$REGEX_NOT_DELETED" )
-  RET="/home/root/.local/share/remarkable/xochitl/*.metadata" # Overwritten by rmtgrep
+  RET_MATCH="/home/root/.local/share/remarkable/xochitl/*.metadata" # Overwritten by rmtgrep
   for regex in "${FILTER[@]}"; do
-    rmtgrep "l" "$regex" "$(echo "$RET" | tr '\n' ' ')"
-    if [ -z "$RET" ]; then
+    rmtgrep "l" "$regex" "$(echo "$RET_MATCH" | tr '\n' ' ')"
+    if [ -z "$RET_MATCH" ]; then
       break
     fi
   done
 
-  matches=( $(echo "$RET" | grep -o '[a-z0-9]*\-[a-z0-9]*\-[a-z0-9]*\-[a-z0-9]*\-[a-z0-9]*') )
+  matches=( $(echo "$RET_MATCH" | grep -o '[a-z0-9]*\-[a-z0-9]*\-[a-z0-9]*\-[a-z0-9]*\-[a-z0-9]*') )
   for match in "${matches[@]}"; do
     if [ "$(expr $3 + 1)" -eq "${#_PATH[@]}" ]; then # End of path
-      FOUND+=($match);
+      RET_FOUND+=($match);
     else
       matches=()
 
       find "$match" "$2" "$(expr $3 + 1)"            # Expand tree
+    fi
+  done
+}
+
+# Obtain the UUID for a file localted in the root directory
+
+# $1 - Visible Name
+
+# $RET_UUID - Returned UUID(s)
+function uuid_of_root_file {
+  RET_UUID=""
+  matches_by_name="$(ssh -S remarkable-ssh root@"$SSH_ADDRESS" "grep -l '\"visibleName\": \"$1\"' ~/.local/share/remarkable/xochitl/*.metadata")"
+
+  if [ -z "$matches_by_name" ]; then
+    return
+  fi
+
+  for metadata in $matches_by_name; do
+    shares_parent="$(ssh -S remarkable-ssh root@"$SSH_ADDRESS" "grep '\"parent\": \"\"' $metadata")"
+
+    if [ ! -z "$shares_parent" ]; then
+      deleted="$(ssh -S remarkable-ssh root@"$SSH_ADDRESS" "grep '\"deleted\": true' $metadata")"
+      if [ -z "$deleted" ]; then
+        RET_UUID="$(basename "$metadata" .metadata)"
+        break
+      fi
+    fi
+  done
+}
+
+# Push documents to the device
+
+# $1 - Path to document (Must be EPUB or PDF)
+
+# $RET_UUID - The fs UUID of the document
+# $? - true: transfer succeeded | false: transfer failed
+function push {
+
+  file_cmd_output="$(file -F '|' "$f")"
+  if echo "$file_cmd_output" | grep -qoP "(?<=\| )(PDF)"; then
+    extension="pdf"
+  else
+    extension="epub"
+  fi
+
+  # Create placeholder
+  placeholder="/tmp/repush/$(basename "$f")"
+  touch "$placeholder"
+
+  while true; do
+    if curl --connect-timeout 2 --silent --output /dev/null --form file=@"\"$placeholder\"" http://"$WEBUI_ADDRESS"/upload; then
+
+      # Wait for metadata to be generated
+      while true; do
+        uuid_of_root_file "$(basename "$f")"
+        if [ ! -z "$RET_UUID" ]; then
+          break
+        fi
+      done;
+
+      # Wait for placeholder to be transferred
+      while true; do
+        if ssh -S remarkable-ssh root@"$SSH_ADDRESS" stat "/home/root/.local/share/remarkable/xochitl/$RET_UUID.$extension" \> /dev/null 2\>\&1; then
+          break
+        fi
+      done;
+
+      # Replace placeholder with document
+      retry=""
+      while true; do
+        scp "$f" root@"$SSH_ADDRESS":"/home/root/.local/share/remarkable/xochitl/$RET_UUID.$extension"
+
+        if [ $? -ne 0 ]; then
+          read -r -p "Failed to replace placeholder! Retry? [Y/n]: " retry
+          if [[ $retry == "n" || $retry == "N" ]]; then
+            return 0
+          fi
+        else
+          break
+        fi
+      done
+
+      # Delete thumbnails (TODO: Replace thumbnail with pre-rendered thumbnail)
+      ssh -S remarkable-ssh root@"$SSH_ADDRESS" "rm -f /home/root/.local/share/remarkable/xochitl/$RET_UUID.thumbnails/*"
+
+      return 1
+
+    else
+      retry=""
+      echo "$f: Failed"
+      read -r -p "Failed to push file! Retry? [Y/n]: " retry
+
+      if [[ $retry == "n" || $retry == "N" ]]; then
+        return 0
+      fi
     fi
   done
 }
@@ -134,7 +229,7 @@ if [ -z "$1" ];  then
   exit -1
 fi
 
-# Check file validity before initiating push
+# Check file validity
 for f in "$@"; do
   if [ ! -f "$f" ]; then
     echo "No such file: $f"
@@ -166,17 +261,18 @@ else
   ssh -M -S remarkable-ssh -q -f root@"$SSH_ADDRESS" -N
 fi
 
-echo "Successfully established connection, please do not lock your device until the script has completed!"
+# Create directory in /tmp/repush for placeholders or documents awaiting modification
+rm -rf "/tmp/repush"
+mkdir -p "/tmp/repush"
 
-s=0
-
+OUTPUT_UUID=""
 if [ "$OUTPUT" ]; then
   find '' "$OUTPUT" '0'
 
-  if [ "${#FOUND[@]}" -gt 1 ]; then
+  if [ "${#RET_FOUND[@]}" -gt 1 ]; then
     REGEX='"lastModified": "[^"]*"'
-    FOUND=( "${FOUND[@]/#//home/root/.local/share/remarkable/xochitl/}" )
-    GREP="grep -o '$REGEX' ${FOUND[@]/%/.metadata}"
+    RET_FOUND=( "${RET_FOUND[@]/#//home/root/.local/share/remarkable/xochitl/}" )
+    GREP="grep -o '$REGEX' ${RET_FOUND[@]/%/.metadata}"
     match="$(ssh -S remarkable-ssh root@"$SSH_ADDRESS" "$GREP")"
 
     # Sort metadata by date
@@ -206,19 +302,14 @@ if [ "$OUTPUT" ]; then
       echo "Invalid input"
     done
 
-  elif [ "${#FOUND[@]}" -eq 0 ]; then
+  elif [ "${#RET_FOUND[@]}" -eq 0 ]; then
     echo "Unable to find output directory: $OUTPUT"
-    exit
+    ssh -S remarkable-ssh -O exit root@"$SSH_ADDRESS"
+    exit -1
 
   else
-    OUTPUT_UUID="$FOUND"
+    OUTPUT_UUID="$RET_FOUND"
   fi
-
-  echo
-  echo "==================================================================================================================================="
-  echo "Shipping documents to output directory. It is highly recommended to refrain from using your device until this script has completed!"
-  echo "==================================================================================================================================="
-  echo
 
   RFKILL="$(ssh -S remarkable-ssh root@"$SSH_ADDRESS" "/usr/sbin/rfkill list 0 | grep 'blocked: yes'")"
   if [ -z "$RFKILL" ]; then
@@ -226,47 +317,43 @@ if [ "$OUTPUT" ]; then
     ssh -S remarkable-ssh root@"$SSH_ADDRESS" "/usr/sbin/rfkill block 0"
     echo
   fi
+fi
 
-  for f in "$@"; do
-    TMP="/tmp/repush"
-    rm -rf "$TMP"
-    mkdir -p "$TMP"
-    basename="$(basename "$f")"
-    tmpfname=_tmp_repush_"${basename%.*}"_tmp_repush_."${basename##*.}"
-    tmpf="$TMP/$tmpfname"
-    cp "$f" "$tmpf"
+# Check if file with same name already exists in the root directory
+for f in "$@"; do
+  uuid_of_root_file "$(basename $f)"
 
-    if [ -f "$tmpf" ]; then
-      echo "Shipping '$f'"
+  if [ ! -z $RET_UUID ]; then
+    echo "repush: Cannot push '$f':  File already exists in root directory"
+    ssh -S remarkable-ssh -O exit root@"$SSH_ADDRESS"
+    exit -1
+  fi
+done
 
-      stat=""
-      attempt=""
-      while [[ ! "$stat" && "$attempt" != "n" ]]; do
-        if curl --connect-timeout 2 --silent --output /dev/null --form file=@"\"$tmpf\"" http://"$WEBUI_ADDRESS"/upload; then
-          stat=1
+success=0
+for f in "$@"; do
+  push "$f"
 
-          echo "Accessing metadata for '$(basename "$f")'"
-          while [ -z "$metadata" ]; do
-            metadata="$(ssh -S remarkable-ssh root@"$SSH_ADDRESS" "grep -l '\"visibleName\": \"$tmpfname\"' ~/.local/share/remarkable/xochitl/*.metadata")"
-          done
-
-          ssh -S remarkable-ssh root@"$SSH_ADDRESS" "sed -i 's/\"parent\": \"[^\"]*\"/\"parent\": \"$OUTPUT_UUID\"/' $metadata && sed -i 's/\"visibleName\": \"[^\"]*\"/\"visibleName\": \"$basename\"/' $metadata"
-          ((success++))
-          echo "$f: Success"
-          echo
-        else
-          stat=""
-          echo "$f: Failed"
-          read -r -p "Failed to push file! Retry? [Y/n]: " attempt
-        fi
-      done
-
-    else
-      echo "Failed to prepare '$f' for shipping"
+  if [ $? == 1 ]; then
+    if [ "$OUTPUT" ]; then
+      # Move file to output directory
+      ssh -S remarkable-ssh root@"$SSH_ADDRESS" "sed -i 's/\"parent\": \"[^\"]*\"/\"parent\": \"$OUTPUT_UUID\"/' /home/root/.local/share/remarkable/xochitl/$RET_UUID.metadata"
     fi
 
-  done
+    # Dete flag (-d) provided
+    if [ "$DELETE_ON_PUSH" ]; then
+      rm "$f"
+      if [ $? -ne 0 ]; then
+        echo "Failed to remove $f"
+      fi
+    fi
+    ((success++))
+  else
+    echo "$f: Failed"
+  fi
+done
 
+if [ "$OUTPUT" ]; then
   echo "Applying changes..."
   ssh -S remarkable-ssh root@"$SSH_ADDRESS" "systemctl restart xochitl;"
 
@@ -275,40 +362,6 @@ if [ "$OUTPUT" ]; then
     echo
     ssh -S remarkable-ssh root@"$SSH_ADDRESS" "sleep 5; /usr/sbin/rfkill unblock 0"
   fi
-
-else
-  echo
-  echo "========================"
-  echo "Initiating file transfer"
-  echo "========================"
-  echo
-  for f in "$@"; do
-    stat=""
-    attempt=""
-    while [[ ! "$stat" && "$attempt" != "n" ]]; do
-      echo "Pushing '$f'..."
-      if curl --connect-timeout 2 --silent --output /dev/null --form file=@"\"$f\"" http://"$WEBUI_ADDRESS"/upload; then
-        stat=1
-        echo "$f: Success"
-
-        # Dete flag (-d) provided
-        if [ "$DELETE_ON_PUSH" ]; then
-          rm "$f"
-          if [ $? -ne 0 ]; then
-            echo "Failed to remove $f"
-          fi
-        fi
-
-        ((success++))
-
-        echo
-      else
-        stat=""
-        echo "$f: Failed"
-        read -r -p "Failed to push file! Retry? [Y/n]: " attempt
-      fi
-    done
-  done
 fi
 
 ssh -S remarkable-ssh -O exit root@"$SSH_ADDRESS"
