@@ -127,15 +127,16 @@ function uuid_of_root_file {
 # $? - 1: transfer succeeded | 0: transfer failed
 function push {
 
-  file_cmd_output="$(file -F '|' "$f")"
-  if echo "$file_cmd_output" | grep -qoP "(?<=\| )(PDF)"; then
+  file_cmd_output="$(file -F '|' "$1")"
+
+  if [ ! -z "$(echo "$file_cmd_output" | grep -o "| PDF")" ]; then
     extension="pdf"
   else
     extension="epub"
   fi
 
   # Create placeholder
-  placeholder="/tmp/repush/$(basename "$f")"
+  placeholder="/tmp/repush/$(basename "$1")"
   touch "$placeholder"
 
   while true; do
@@ -143,7 +144,7 @@ function push {
 
       # Wait for metadata to be generated
       while true; do
-        uuid_of_root_file "$(basename "$f")"
+        uuid_of_root_file "$(basename "$1")"
         if [ ! -z "$RET_UUID" ]; then
           break
         fi
@@ -159,7 +160,7 @@ function push {
       # Replace placeholder with document
       retry=""
       while true; do
-        scp "$f" root@"$SSH_ADDRESS":"/home/root/.local/share/remarkable/xochitl/$RET_UUID.$extension"
+        scp "$1" root@"$SSH_ADDRESS":"/home/root/.local/share/remarkable/xochitl/$RET_UUID.$extension"
 
         if [ $? -ne 0 ]; then
           read -r -p "Failed to replace placeholder! Retry? [Y/n]: " retry
@@ -178,7 +179,7 @@ function push {
 
     else
       retry=""
-      echo "$f: Failed"
+      echo "$1: Failed"
       read -r -p "Failed to push file! Retry? [Y/n]: " retry
 
       if [[ $retry == "n" || $retry == "N" ]]; then
@@ -231,10 +232,11 @@ fi
 
 # Check file validity
 for f in "$@"; do
+  file_cmd_output="$(file -F '|' "$f")"
   if [ ! -f "$f" ]; then
     echo "No such file: $f"
     exit -1
-  elif ! file -F '|' "$f" | grep -qoP "(?<=\| )(PDF|EPUB)"; then
+  elif [[ -z "$(echo "$file_cmd_output" | grep -o "| PDF")" && -z "$(echo "$file_cmd_output" | grep -o "| EPUB")" ]]; then
     echo "Unsupported file format: $f"
     echo "Only PDFs and EPUBs are supported"
     exit -1
