@@ -306,6 +306,7 @@ if [ "$OUTPUT" ]; then
 
   elif [ "${#RET_FOUND[@]}" -eq 0 ]; then
     echo "Unable to find output directory: $OUTPUT"
+    rm -rf /tmp/repush
     ssh -S remarkable-ssh -O exit root@"$SSH_ADDRESS"
     exit -1
 
@@ -328,6 +329,7 @@ for f in "$@"; do
   if [ ! -z $RET_UUID ]; then
     echo "repush: Cannot push '$f':  File already exists in root directory"
     ssh -S remarkable-ssh -O exit root@"$SSH_ADDRESS"
+    rm -rf /tmp/repush
     exit -1
   fi
 done
@@ -366,5 +368,6 @@ if [ "$OUTPUT" ]; then
   fi
 fi
 
+rm -rf /tmp/repush
 ssh -S remarkable-ssh -O exit root@"$SSH_ADDRESS"
 echo "Successfully transferred $success out of $# documents"
