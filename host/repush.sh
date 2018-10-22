@@ -324,7 +324,7 @@ fi
 
 # Check if file with same name already exists in the root directory
 for f in "$@"; do
-  uuid_of_root_file "$(basename $f)"
+  uuid_of_root_file "$(basename "$f")"
 
   if [ ! -z $RET_UUID ]; then
     echo "repush: Cannot push '$f':  File already exists in root directory"
