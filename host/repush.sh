@@ -38,7 +38,7 @@ function usage {
   echo -e "-o\t\t\tOutput directory to which the provided files will be uploaded to"
   echo -e "-d\t\t\tDelete file after successful push"
   echo -e "-r\t\t\tPush remotely via ssh tunneling"
-  echo -e "-p\t\t\tIf -r has been given, this option defines port to which the webui will be tunneled (default 9000)"
+  echo -e "-p\t\t\tIf -r has been given, this option defines the port to which the webui will be tunneled (default 9000)"
 }
 
 # Grep remote fs (grep on reMarkable)
