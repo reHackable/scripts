@@ -263,6 +263,18 @@ else
   ssh -M -S remarkable-ssh -q -f root@"$SSH_ADDRESS" -N
 fi
 
+# Check if file with same name already exists in the root directory
+for f in "$@"; do
+  uuid_of_root_file "$(basename "$f")"
+
+  if [ ! -z $RET_UUID ]; then
+    echo "repush: Cannot push '$f':  File already exists in root directory"
+    ssh -S remarkable-ssh -O exit root@"$SSH_ADDRESS"
+    rm -rf /tmp/repush
+    exit -1
+  fi
+done
+
 # Create directory in /tmp/repush for placeholders
 rm -rf "/tmp/repush"
 mkdir -p "/tmp/repush"
@@ -321,18 +333,6 @@ if [ "$OUTPUT" ]; then
     echo
   fi
 fi
-
-# Check if file with same name already exists in the root directory
-for f in "$@"; do
-  uuid_of_root_file "$(basename "$f")"
-
-  if [ ! -z $RET_UUID ]; then
-    echo "repush: Cannot push '$f':  File already exists in root directory"
-    ssh -S remarkable-ssh -O exit root@"$SSH_ADDRESS"
-    rm -rf /tmp/repush
-    exit -1
-  fi
-done
 
 success=0
 for f in "$@"; do
