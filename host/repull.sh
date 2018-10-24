@@ -42,7 +42,7 @@ function usage {
 # Downloads document trough the webui
 
 # $1 - WebUI address (10.11.99.1)
-# $2 - File ID
+# $2 - File UUID
 # $3 - Output name or dir (Opt)
 # $4 - Text to be appended to file name (before extension) (Opt)
 function download {
@@ -176,8 +176,6 @@ if [ "$OUTPUT" ] && [ $# -gt 1 ] && [ ! -d "$OUTPUT" ]; then
   exit -1
 fi
 
-echo "Attempting to establish connection with the device..."
-
 if [ "$REMOTE" ]; then
   if nc -z localhost "$PORT" > /dev/null; then
     echo "repull: Port $PORT is already used by a different process!"
@@ -193,20 +191,14 @@ if [ "$REMOTE" ]; then
   fi
 
   WEBUI_ADDRESS="localhost:$PORT"
-  echo "repull: Established remote connection to the reMarkable web interface"
 else
   ssh -M -S remarkable-ssh -q -f root@"$SSH_ADDRESS" -N
 fi
 
-echo "Successfully established connection, please do not lock your device until the script has completed!"
-
 # Check if name matches document
 # this way we can prevent unecessary pulling
-echo "repull: Checking device for documents..."
-
 for path in "$@"; do
 
-  echo "Searching for $path..."
   find "" "$path" 0
 
   if [ "$FOUND" ]; then
@@ -287,8 +279,7 @@ for path in "$@"; do
         fi
       done
     else
-      echo "Document found!"
-      echo "Downloading..."
+      echo "Downloading document..."
       download "$WEBUI_ADDRESS" "$FOUND" "$OUTPUT" ""
       if [ $? -eq 0 ]; then
         echo "$f: Success"
