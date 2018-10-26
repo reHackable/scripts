@@ -100,17 +100,24 @@ function find {
 # $RET_UUID - Returned UUID(s)
 function uuid_of_root_file {
   RET_UUID=""
-  matches_by_name="$(ssh -S remarkable-ssh root@"$SSH_ADDRESS" "grep -lF '\"visibleName\": \"$1\"' ~/.local/share/remarkable/xochitl/*.metadata")"
+
+  rmtgrep "lF" "\"visibleName\": \"$1\"" "~/.local/share/remarkable/xochitl/*.metadata"
+  matches_by_name="$RET_MATCH"
 
   if [ -z "$matches_by_name" ]; then
     return
   fi
 
   for metadata in $matches_by_name; do
-    shares_parent="$(ssh -S remarkable-ssh root@"$SSH_ADDRESS" "grep -F '\"parent\": \"\"' $metadata")"
+
+    rmtgrep "F" '"parent": ""' "$metadata"
+    shares_parent="$RET_MATCH"
 
     if [ ! -z "$shares_parent" ]; then
-      deleted="$(ssh -S remarkable-ssh root@"$SSH_ADDRESS" "grep -F '\"deleted\": true' $metadata")"
+
+      rmtgrep "F" '"deleted": true' "$metadata"
+      deleted="$RET_MATCH"
+
       if [ -z "$deleted" ]; then
         RET_UUID="$(basename "$metadata" .metadata)"
         break
@@ -287,7 +294,7 @@ if [ "$OUTPUT" ]; then
     REGEX='"lastModified": "[^"]*"'
     RET_FOUND=( "${RET_FOUND[@]/#//home/root/.local/share/remarkable/xochitl/}" )
     GREP="grep -o '$REGEX' ${RET_FOUND[@]/%/.metadata}"
-    match="$(ssh -S remarkable-ssh root@"$SSH_ADDRESS" "$GREP")"
+    match="$(ssh -S remarkable-ssh root@"$SSH_ADDRESS" "$GREP")" # Returns string that includes Metadata Path + Modification date
 
     # Sort metadata by date
     metadata=($(echo "$match" | sed "s/ //g" | sort -rn -t'"' -k4))
