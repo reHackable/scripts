@@ -17,12 +17,11 @@
 #                  Part of the reHackable organization <https://github.com/reHackable>
 
 # Description   : Host sided script that can push one or more documents to the reMarkable
-#                 using the Web client
+#                 using the Web client and SSH
 
 # Dependencies  : cURL, ssh, nc
 
-# Notations     : While this isn't directly related to this script, attempting to push epubs trough the web client
-#                 may freeze the device
+# Usage         : https://github.com/reHackable/scripts/wiki/repush.sh
 
 # Local
 SSH_ADDRESS="10.11.99.1"
