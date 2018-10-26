@@ -100,17 +100,17 @@ function find {
 # $RET_UUID - Returned UUID(s)
 function uuid_of_root_file {
   RET_UUID=""
-  matches_by_name="$(ssh -S remarkable-ssh root@"$SSH_ADDRESS" "grep -l '\"visibleName\": \"$1\"' ~/.local/share/remarkable/xochitl/*.metadata")"
+  matches_by_name="$(ssh -S remarkable-ssh root@"$SSH_ADDRESS" "grep -lF '\"visibleName\": \"$1\"' ~/.local/share/remarkable/xochitl/*.metadata")"
 
   if [ -z "$matches_by_name" ]; then
     return
   fi
 
   for metadata in $matches_by_name; do
-    shares_parent="$(ssh -S remarkable-ssh root@"$SSH_ADDRESS" "grep '\"parent\": \"\"' $metadata")"
+    shares_parent="$(ssh -S remarkable-ssh root@"$SSH_ADDRESS" "grep -F '\"parent\": \"\"' $metadata")"
 
     if [ ! -z "$shares_parent" ]; then
-      deleted="$(ssh -S remarkable-ssh root@"$SSH_ADDRESS" "grep '\"deleted\": true' $metadata")"
+      deleted="$(ssh -S remarkable-ssh root@"$SSH_ADDRESS" "grep -F '\"deleted\": true' $metadata")"
       if [ -z "$deleted" ]; then
         RET_UUID="$(basename "$metadata" .metadata)"
         break
