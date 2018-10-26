@@ -1,10 +1,10 @@
 # Scripts
 
-## [See Wiki](https://github.com/reHackable/scripts/wiki)
-
 A set of bash scripts primarily aimed to increase productivity for Linux and OSX enthusiasts that own a reMarkable tablet.
 
 The repository provides a broad range of scripts, ranging from simple patchers meant to fix obnoxious little flaws, all the way to push and pull scripts that can transfer documents from- and to the reMarkable from the bash command line.
+
+For more information, please [refer to the repo wiki](https://github.com/reHackable/scripts/wiki).
 
 ## Host
 Host scripts are meant to be executed on the host device and will frequently require a connection the device either locally via USB, or wirelessly via SSH.
