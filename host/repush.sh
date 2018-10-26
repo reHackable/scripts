@@ -315,7 +315,7 @@ if [ "$OUTPUT" ]; then
 
       read -rp "Select your target directory: " INPUT
 
-      if [ "$INPUT" -gt 0 ] && [ "$INPUT" -lt $(expr i + 1) ]; then
+      if [[ "$INPUT" -gt 0  && "$INPUT" -lt $(expr $i + 1) ]]; then
         OUTPUT_UUID="${uuid[(($i-1))]}"
         break
       fi
