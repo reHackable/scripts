@@ -1,23 +1,23 @@
 # Scripts
 
-[See Wiki](https://github.com/reHackable/scripts/wiki)
+## [See Wiki](https://github.com/reHackable/scripts/wiki)
 
-A set of bash scripts that may enhance your reMarkable experience
+A set of bash scripts primarily aimed to increase productivity for Linux and OSX enthusiasts that own a reMarkable tablet.
+
+The repository provides a broad range of scripts, ranging from simple patchers meant to fix obnoxious little flaws, all the way to push and pull scripts that can transfer documents from- and to the reMarkable from the bash command line.
 
 ## Host
-All scripts that fall under this category are host-sided scripts. In other words, these scripts
-are executed on your PC, not your reMarkable. Host scripts will however in most cases require
-connection to your reMarkable, either trough USB or Wireless.
+Host scripts are meant to be executed on the host device and will frequently require a connection the device either locally via USB, or wirelessly via SSH.
 
-- rezone.sh
-- repush.sh
-- repull.sh
-- retext.sh
-- clean.sh
+- [rezone.sh](https://github.com/reHackable/scripts/wiki/rezone.sh)
+- [repush.sh](https://github.com/reHackable/scripts/wiki/repush.sh)
+- [repull.sh](https://github.com/reHackable/scripts/wiki/repull.sh)
+- [retext.sh](https://github.com/reHackable/scripts/wiki/retext.sh)
+- [reclean.sh](https://github.com/reHackable/scripts/wiki/reclean.sh)
 
 ## Client
 All scripts that fall under this category are client-sided scripts. In other words, these scripts
-are executed on your reMarkable either locally, or trough an SSH connection.
+are executed on your reMarkable locally.
 
 ## Common
 All scripts that fall under this category can be executed on both host as well as client. Some scripts
