@@ -259,7 +259,7 @@ done
 
 if [ "$REMOTE" ]; then
   if nc -z localhost "$PORT" > /dev/null; then
-    echo "repull: Port $PORT is already used by a different process!"
+    echo "repush: Port $PORT is already used by a different process!"
     exit -1
   fi
 
