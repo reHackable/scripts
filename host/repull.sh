@@ -13,11 +13,11 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-# Author        :  Patrick Pedersen <ctx.xda@gmail.com>,
-#                  Part of the reHackable organization <https://github.com/reHackable>
+# Author        : Patrick Pedersen <ctx.xda@gmail.com>,
+#                 Part of the reHackable organization <https://github.com/reHackable>
 
-# Description   : A host sided script that can download one or more documents from the reMarkable
-#                 using the Web client
+# Description   : A host sided script that can download one or more documents or directories
+#                 from the reMarkable via SSH and the Web client.
 
 # Dependencies  : wget, ssh, nc, date, grep
 
