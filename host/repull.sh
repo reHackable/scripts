@@ -85,14 +85,14 @@ function download {
 # Recursively download a directory
 
 # $1 - WebUI address (10.11.99.1)
-# $2 - Directory UUID
-# $3 - Output directory
-# $4 - Parent path (Name)
+# $2 - Base dir name
+# $3 - Directory UUID
+# $4 - Output directory
 
 # $? - 1: Success | 0: Directory Empty
 function download_dir {
 
-  rmtgrep "lF" "\"parent\": \"$2\"" "/home/root/.local/share/remarkable/xochitl/*.metadata"
+  rmtgrep "lF" "\"parent\": \"$3\"" "/home/root/.local/share/remarkable/xochitl/*.metadata"
   child_metadata="$RET_MATCH"
 
   if [ -z "$child_metadata" ]; then
@@ -116,10 +116,10 @@ function download_dir {
     if [ -n "$is_file" ]; then
 
       visible_name="$(ssh root@"$SSH_ADDRESS" "cat $metadata" | grep -oP "(?<=\"visibleName\"\: \").*(?=\"\$)")"
-      echo "repull: Pulling '$4/$visible_name'"
+      echo "repull: Pulling '$2/$visible_name'"
 
       uuid="$(basename "$metadata" .metadata)"
-      download "$1" "$uuid" "$3"
+      download "$1" "$uuid" "$4"
 
     else
       child_directories+=("$metadata")
@@ -133,22 +133,22 @@ function download_dir {
 
     suffix=1
 
-    while [[ -d "$3/$safe_visible_name" || -f "$3/$safe_visible_name" ]]; do
+    while [[ -d "$4/$safe_visible_name" || -f "$4/$safe_visible_name" ]]; do
       safe_visible_name="$visible_name ($suffix)"
       ((suffix++))
     done
 
-    mkdir "$3/$safe_visible_name"
+    mkdir "$4/$safe_visible_name"
     if [ $? -ne 0 ]; then
-      echo "repull: Failed to create directory: $3/$safe_visible_name"
+      echo "repull: Failed to create directory: $4/$safe_visible_name"
       ssh -S remarkable-ssh -O exit root@"$SSH_ADDRESS"
       exit -1
     fi
 
-    download_dir "$1" "$(basename "$metadata" .metadata)" "$3/$safe_visible_name" "$4/$safe_visible_name"
+    download_dir "$1" "$2/$safe_visible_name" "$(basename "$metadata" .metadata)" "$4/$safe_visible_name"
 
     if [ $? -eq 0 ]; then
-      rm -rf "$3/$safe_visible_name"
+      rm -rf "$4/$safe_visible_name"
     fi
 
   done
@@ -427,7 +427,7 @@ elif [ "${#RET_FOUND[@]}" -gt 1 ]; then
       exit -1
     fi
 
-    download_dir "$WEBUI_ADDRESS" "$OUTPUT_UUID" "$local_dir" "$(echo /$path | tr -s '/')"
+    download_dir "$WEBUI_ADDRESS" "$(echo /$path | tr -s '/')" "$OUTPUT_UUID" "$local_dir"
 
     if [ "$?" -eq 0 ]; then
       echo "repull: Refused to download $path, directory empty!"
