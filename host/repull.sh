@@ -131,7 +131,7 @@ function download_dir {
     visible_name="$(ssh root@"$SSH_ADDRESS" "cat $metadata" | grep -oP "(?<=\"visibleName\"\: \").*(?=\"\$)")"
     safe_visible_name="$visible_name"
 
-    suffix=1  # Regex order has been optimized
+    suffix=1
 
     while [[ -d "$3/$safe_visible_name" || -f "$3/$safe_visible_name" ]]; do
       safe_visible_name="$visible_name ($suffix)"
