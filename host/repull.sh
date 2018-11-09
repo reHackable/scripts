@@ -213,7 +213,7 @@ function find_document {
   done
 }
 
-# Recursively Search a Directory
+# Recursively Search for a Directory
 
 # $1 - UUID of parent
 # $2 - Path
