@@ -118,9 +118,9 @@ function uuid_of_root_file {
   for metadata in $matches_by_name; do
 
     rmtgrep "F" '"parent": ""' "$metadata"
-    shares_parent="$RET_MATCH"
+    is_root_child="$RET_MATCH"
 
-    if [ ! -z "$shares_parent" ]; then
+    if [ ! -z "$is_root_child" ]; then
 
       rmtgrep "F" '"deleted": true' "$metadata"
       deleted="$RET_MATCH"
