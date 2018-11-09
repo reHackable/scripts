@@ -333,8 +333,6 @@ fi
 if [ "$?" -ne 0 ]; then
   echo "repull: Failed to establish connection with the device!"
   exit -1
-else
-  echo "repull: Established remote connection to the reMarkable web interface"
 fi
 
 # Check if name matches document

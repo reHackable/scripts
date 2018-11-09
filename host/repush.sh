@@ -272,8 +272,6 @@ fi
 if [ "$?" -ne 0 ]; then
   echo "repush: Failed to establish connection with the device!"
   exit -1
-else
-  echo "repush: Established remote connection to the reMarkable web interface"
 fi
 
 # Check if file with same name already exists in the root directory
