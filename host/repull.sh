@@ -101,34 +101,28 @@ function download_dir {
 
   child_directories=()
 
-  for metadata in $child_metadata; do
+  for metadata_path in $child_metadata; do
 
-    rmtgrep "F" '"deleted": true' "$metadata"
-    deleted="$RET_MATCH"
+    metadata="$(ssh -S remarkable-ssh root@"$SSH_ADDRESS" "cat $metadata_path")"
 
-    if [ -n "$deleted" ]; then
+    if echo "$metadata" | grep -qF '"deleted": true'; then
       continue
     fi
 
-    rmtgrep "F" '"type": "DocumentType"' "$metadata"
-    is_file="$RET_MATCH"
-
-    if [ -n "$is_file" ]; then
-
-      visible_name="$(ssh root@"$SSH_ADDRESS" "cat $metadata" | grep -oP "(?<=\"visibleName\"\: \").*(?=\"\$)")"
+    if echo "$metadata" | grep -qF '"type": "DocumentType"'; then
+      visible_name="$(ssh root@"$SSH_ADDRESS" "cat $metadata_path" | grep -oP "(?<=\"visibleName\"\: \").*(?=\"\$)")"
       echo "repull: Pulling '$2/$visible_name'"
 
-      uuid="$(basename "$metadata" .metadata)"
+      uuid="$(basename "$metadata_path" .metadata)"
       download "$1" "$uuid" "$4"
-
     else
-      child_directories+=("$metadata")
+      child_directories+=("$metadata_path")
     fi
   done
 
   for metadata in "${child_directories[@]}"; do
 
-    visible_name="$(ssh root@"$SSH_ADDRESS" "cat $metadata" | grep -oP "(?<=\"visibleName\"\: \").*(?=\"\$)")"
+    visible_name="$(ssh root@"$SSH_ADDRESS" "cat $metadata_path" | grep -oP "(?<=\"visibleName\"\: \").*(?=\"\$)")"
     safe_visible_name="$visible_name"
 
     suffix=1
@@ -145,7 +139,7 @@ function download_dir {
       exit -1
     fi
 
-    download_dir "$1" "$2/$safe_visible_name" "$(basename "$metadata" .metadata)" "$4/$safe_visible_name"
+    download_dir "$1" "$2/$safe_visible_name" "$(basename "$metadata_path" .metadata)" "$4/$safe_visible_name"
 
     if [ $? -eq 0 ]; then
       rm -rf "$4/$safe_visible_name"
@@ -174,40 +168,26 @@ function find_document {
   rmtgrep "lF" "\"visibleName\": \"${_PATH[$3]}\"" "/home/root/.local/share/remarkable/xochitl/*.metadata"
   matches_by_name="$RET_MATCH"
 
-  for metadata in $matches_by_name; do
+  for metadata_path in $matches_by_name; do
 
-    rmtgrep "F" "\"parent\": \"$1\"" "$metadata"
-    is_child="$RET_MATCH"
+    metadata="$(ssh -S remarkable-ssh root@"$SSH_ADDRESS" "cat $metadata_path")"
 
-    if [ -z is_child ]; then
+    if ! echo "$metadata" | grep -qF "\"parent\": \"$1\""; then
       continue
     fi
 
-    rmtgrep "F" '"deleted": true' "$metadata"
-    deleted="$RET_MATCH"
-
-    if [ -z deleted ]; then
+    if echo "$metadata" | grep -qF '"deleted": true'; then
       continue
     fi
 
     if [[ "$(expr $3 + 1)" -eq "${#_PATH[@]}" ]]; then
-
-      rmtgrep "F" '"type": "DocumentType"' "$metadata"
-      is_document="$RET_MATCH"
-
-      if [ -n "$is_document" ]; then
-        RET_FOUND+=("$(basename "$metadata" .metadata)")
+      if echo "$metadata" | grep -qF '"type": "DocumentType"'; then
+        RET_FOUND+=("$(basename "$metadata_path" .metadata)")
       fi
-
     else
-
-      rmtgrep "F" '"type": "CollectionType"' "$metadata"
-      is_directory="$RET_MATCH"
-
-      if [ -n "$is_directory" ]; then
-        find_document "$(basename "$metadata" .metadata)" "$2" "$(expr $3 + 1)"
+      if echo "$metadata" | grep -qF '"type": "CollectionType"'; then
+        find_document "$(basename "$metadata_path" .metadata)" "$2" "$(expr $3 + 1)"
       fi
-
     fi
 
   done
@@ -230,33 +210,26 @@ function find_directory {
   rmtgrep "lF" "\"visibleName\": \"${_PATH[$3]}\"" "/home/root/.local/share/remarkable/xochitl/*.metadata"
   matches_by_name="$RET_MATCH"
 
-  for metadata in $matches_by_name; do
+  for metadata_path in $matches_by_name; do
 
-    rmtgrep "F" "\"parent\": \"$1\"" "$metadata"
-    is_child="$RET_MATCH"
+    metadata="$(ssh -S remarkable-ssh root@"$SSH_ADDRESS" "cat $metadata_path")"
 
-    if [ -z is_child ]; then
+    if ! echo "$metadata" | grep -qF "\"parent\": \"$1\""; then
       continue
     fi
 
-    rmtgrep "F" '"deleted": true' "$metadata"
-    deleted="$RET_MATCH"
-
-    if [ -z deleted ]; then
+    if echo "$metadata" | grep -qF '"deleted": true'; then
       continue
     fi
 
-    rmtgrep "F" '"type": "CollectionType"' "$metadata"
-    is_directory="$RET_MATCH"
-
-    if [ -z "$is_directory" ]; then
+    if ! echo "$metadata" | grep -qF '"type": "CollectionType"'; then
       continue
     fi
 
     if [[ "$(expr $3 + 1)" -eq "${#_PATH[@]}" ]]; then
-      RET_FOUND+=("$(basename "$metadata" .metadata)")
+      RET_FOUND+=("$(basename "$metadata_path" .metadata)")
     else
-      find_directory "$(basename "$metadata" .metadata)" "$2" "$(expr $3 + 1)"
+      find_directory "$(basename "$metadata_path" .metadata)" "$2" "$(expr $3 + 1)"
     fi
 
   done
@@ -357,7 +330,6 @@ for path in "$@"; do
     ssh -S remarkable-ssh -O exit root@"$SSH_ADDRESS"
     exit -1
 
-  # Mutiple matches
 elif [ "${#RET_FOUND[@]}" -gt 1 ]; then
     REGEX='"lastModified": "[^"]*"'
     RET_FOUND=( "${RET_FOUND[@]/#//home/root/.local/share/remarkable/xochitl/}" )

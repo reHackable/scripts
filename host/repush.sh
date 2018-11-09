@@ -68,33 +68,26 @@ function find_directory {
   rmtgrep "lF" "\"visibleName\": \"${_PATH[$3]}\"" "/home/root/.local/share/remarkable/xochitl/*.metadata"
   matches_by_name="$RET_MATCH"
 
-  for metadata in $matches_by_name; do
+  for metadata_path in $matches_by_name; do
 
-    rmtgrep "F" "\"parent\": \"$1\"" "$metadata"
-    is_child="$RET_MATCH"
+    metadata="$(ssh -S remarkable-ssh root@"$SSH_ADDRESS" "cat $metadata_path")"
 
-    if [ -z is_child ]; then
+    if ! echo "$metadata" | grep -qF "\"parent\": \"$1\""; then
       continue
     fi
 
-    rmtgrep "F" '"deleted": true' "$metadata"
-    deleted="$RET_MATCH"
-
-    if [ -z deleted ]; then
+    if echo "$metadata" | grep -qF '"deleted": true'; then
       continue
     fi
 
-    rmtgrep "F" '"type": "CollectionType"' "$metadata"
-    is_directory="$RET_MATCH"
-
-    if [ -z "$is_directory" ]; then
+    if ! echo "$metadata" | grep -qF '"type": "CollectionType"'; then
       continue
     fi
 
     if [[ "$(expr $3 + 1)" -eq "${#_PATH[@]}" ]]; then
-      RET_FOUND+=("$(basename "$metadata" .metadata)")
+      RET_FOUND+=("$(basename "$metadata_path" .metadata)")
     else
-      find_directory "$(basename "$metadata" .metadata)" "$2" "$(expr $3 + 1)"
+      find_directory "$(basename "$metadata_path" .metadata)" "$2" "$(expr $3 + 1)"
     fi
 
   done
@@ -115,20 +108,13 @@ function uuid_of_root_file {
     return
   fi
 
-  for metadata in $matches_by_name; do
+  for metadata_path in $matches_by_name; do
 
-    rmtgrep "F" '"parent": ""' "$metadata"
-    is_root_child="$RET_MATCH"
+    metadata="$(ssh -S remarkable-ssh root@"$SSH_ADDRESS" "cat $metadata_path")"
 
-    if [ ! -z "$is_root_child" ]; then
-
-      rmtgrep "F" '"deleted": true' "$metadata"
-      deleted="$RET_MATCH"
-
-      if [ -z "$deleted" ]; then
-        RET_UUID="$(basename "$metadata" .metadata)"
-        break
-      fi
+    if echo "$metadata" | grep -qF '"parent": ""' && echo "$metadata" | grep -qF '"deleted": false'; then
+      RET_UUID="$(basename "$metadata_path" .metadata)"
+      break
     fi
   done
 }
