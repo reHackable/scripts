@@ -51,44 +51,52 @@ function rmtgrep {
   RET_MATCH="$(ssh -S remarkable-ssh root@"$SSH_ADDRESS" "grep -$1 '$2' $3")"
 }
 
-# Recursively Search File(s)
+# Recursively Search for a Directory
 
 # $1 - UUID of parent
 # $2 - Path
 # $3 - Current Itteration
 
 # $RET_FOUND - List of matched UUIDs
-function find {
+function find_directory {
   OLD_IFS=$IFS
   IFS='/' _PATH=(${2#/}) # Sort path into array
   IFS=$OLD_IFS
 
-  # Nested greps are nightmare to debug, trust me...
+  RET_FOUND=()
 
-  REGEX_NOT_DELETED='"deleted": false'
-  REGEX_BY_VISIBLE_NAME="\\\"visibleName\": \\\"${_PATH[$3]}\\\""
-  REGEX_BY_PARENT="\\\"parent\\\": \\\"$1\\\""                     # Otherwise, it must be of Collection Type ( Directory )
-  REGEX_BY_TYPE='"type": "CollectionType"'
+  rmtgrep "lF" "\"visibleName\": \"${_PATH[$3]}\"" "/home/root/.local/share/remarkable/xochitl/*.metadata"
+  matches_by_name="$RET_MATCH"
 
-  # Regex order has been optimized
-  FILTER=( "$REGEX_BY_VISIBLE_NAME" "$REGEX_BY_PARENT" "$REGEX_BY_TYPE" "$REGEX_NOT_DELETED" )
-  RET_MATCH="/home/root/.local/share/remarkable/xochitl/*.metadata" # Overwritten by rmtgrep
-  for regex in "${FILTER[@]}"; do
-    rmtgrep "l" "$regex" "$(echo "$RET_MATCH" | tr '\n' ' ')"
-    if [ -z "$RET_MATCH" ]; then
-      break
+  for metadata in $matches_by_name; do
+
+    rmtgrep "F" "\"parent\": \"$1\"" "$metadata"
+    is_child="$RET_MATCH"
+
+    if [ -z is_child ]; then
+      continue
     fi
-  done
 
-  matches=( $(echo "$RET_MATCH" | grep -o '[a-z0-9]*\-[a-z0-9]*\-[a-z0-9]*\-[a-z0-9]*\-[a-z0-9]*') )
-  for match in "${matches[@]}"; do
-    if [ "$(expr $3 + 1)" -eq "${#_PATH[@]}" ]; then # End of path
-      RET_FOUND+=($match);
+    rmtgrep "F" '"deleted": true' "$metadata"
+    deleted="$RET_MATCH"
+
+    if [ -z deleted ]; then
+      continue
+    fi
+
+    rmtgrep "F" '"type": "CollectionType"' "$metadata"
+    is_directory="$RET_MATCH"
+
+    if [ -z "$is_directory" ]; then
+      continue
+    fi
+
+    if [[ "$(expr $3 + 1)" -eq "${#_PATH[@]}" ]]; then
+      RET_FOUND+=("$(basename "$metadata" .metadata)")
     else
-      matches=()
-
-      find "$match" "$2" "$(expr $3 + 1)"            # Expand tree
+      find_directory "$(basename "$metadata" .metadata)" "$2" "$(expr $3 + 1)"
     fi
+
   done
 }
 
@@ -287,7 +295,7 @@ mkdir -p "/tmp/repush"
 
 OUTPUT_UUID=""
 if [ "$OUTPUT" ]; then
-  find '' "$OUTPUT" '0'
+  find_directory '' "$OUTPUT" '0'
 
   if [ "${#RET_FOUND[@]}" -gt 1 ]; then
     REGEX='"lastModified": "[^"]*"'
