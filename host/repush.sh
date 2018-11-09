@@ -310,7 +310,7 @@ if [ "$OUTPUT" ]; then
     lastModified=($(echo "${metadata[@]}" | grep -o '"lastModified":"[0-9]*"' | grep -o '[0-9]*'))    # Date and time of last modification
 
     echo
-    echo "$OUTPUT matches multiple directories!"
+    echo "'$OUTPUT' matches multiple directories!"
     while true; do
       echo
 
@@ -320,7 +320,8 @@ if [ "$OUTPUT" ]; then
       done
 
       read -rp "Select your target directory: " INPUT
-
+      echo
+      
       if [[ "$INPUT" -gt 0  && "$INPUT" -lt $(expr $i + 1) ]]; then
         OUTPUT_UUID="${uuid[(($i-1))]}"
         break
