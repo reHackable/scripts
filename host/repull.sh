@@ -391,7 +391,7 @@ elif [ "${#RET_FOUND[@]}" -gt 1 ]; then
       exit -1
     fi
 
-    download_dir "$WEBUI_ADDRESS" "$(echo /$path | tr -s '/')" "$OUTPUT_UUID" "$local_dir"
+    download_dir "$WEBUI_ADDRESS" "$(echo /${path%/} | tr -s '/')" "$OUTPUT_UUID" "$local_dir"
 
     if [ "$?" -eq 0 ]; then
       echo "repull: Refused to download $path, directory empty!"
