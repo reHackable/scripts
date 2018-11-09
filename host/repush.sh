@@ -265,7 +265,7 @@ for f in "$@"; do
   uuid_of_root_file "$(basename "$f")"
 
   if [ ! -z $RET_UUID ]; then
-    echo "repush: Cannot push '$f':  File already exists in root directory"
+    echo "repush: Cannot push '$f': File already exists in root directory"
     ssh -S remarkable-ssh -O exit root@"$SSH_ADDRESS"
     rm -rf /tmp/repush
     exit -1
