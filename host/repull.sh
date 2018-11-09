@@ -407,7 +407,7 @@ elif [ "${#RET_FOUND[@]}" -gt 1 ]; then
   if [ -n "$path_is_directory" ]; then
 
     if [ -d $OUTPUT ]; then
-      local_dir="$OUTPUT/$(echo "$path" | cut -d "/" -f2)"
+      local_dir="$OUTPUT/$(basename "$path")"
     else
       local_dir="$OUTPUT"
     fi
