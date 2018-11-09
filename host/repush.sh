@@ -263,18 +263,17 @@ if [ "$REMOTE" ]; then
     exit -1
   fi
 
-  # Open SSH tunnel for the WebUI
-  ssh -M -S remarkable-ssh -q -f -L "$PORT":"$WEBUI_ADDRESS" root@"$SSH_ADDRESS" -N;
-
-  if ! nc -z localhost "$PORT" > /dev/null; then
-    echo "repull: Failed to establish connection with the device!"
-    exit -1
-  fi
-
+  ssh -o ConnectTimeout=5 -M -S remarkable-ssh -q -f -L "$PORT":"$WEBUI_ADDRESS" root@"$SSH_ADDRESS" -N;
   WEBUI_ADDRESS="localhost:$PORT"
-  echo "repull: Established remote connection to the reMarkable web interface"
 else
-  ssh -M -S remarkable-ssh -q -f root@"$SSH_ADDRESS" -N
+  ssh -o ConnectTimeout=1 -M -S remarkable-ssh -q -f root@"$SSH_ADDRESS" -N
+fi
+
+if [ "$?" -ne 0 ]; then
+  echo "repush: Failed to establish connection with the device!"
+  exit -1
+else
+  echo "repush: Established remote connection to the reMarkable web interface"
 fi
 
 # Check if file with same name already exists in the root directory
