@@ -19,7 +19,7 @@
 # Description   : A host sided script that can download one or more documents from the reMarkable
 #                 using the Web client
 
-# Dependencies  : cURL, ssh, nc, date, grep
+# Dependencies  : wget, ssh, nc, date, grep
 
 # Default Values
 WEBUI_ADDRESS="10.11.99.1:80"
@@ -27,55 +27,13 @@ SSH_ADDRESS="10.11.99.1"
 PORT=9000                     # Deault port to which the webui is tunneled to
 
 function usage {
-  echo "Usage: repull.sh [-o out] [-r ip] [-p port] path_to_doc1 [path_to_doc2 ...]"
+  echo "Usage: repull.sh [-d] [-o out] [-r ip] [-p port] path [path ...]"
   echo
   echo "Options:"
   echo -e "-o\t\t\tOutput file or directory"
+  echo -e "-d\t\t\tRecursively pull directories"
   echo -e "-r\t\t\tPull remotely via ssh tunneling"
   echo -e "-p\t\t\tIf -r has been given, this option defines port to which the webui will be tunneled (default 9000)"
-  echo
-  echo "If multiple documents share the same name, the script will prompt you"
-  echo "to select one or more documents from a list that is sorted by modification"
-  echo "date. The first list entry represents the most recently updated document."
-}
-
-# Downloads document trough the webui
-
-# $1 - WebUI address (10.11.99.1)
-# $2 - File UUID
-# $3 - Output name or dir (Opt)
-# $4 - Text to be appended to file name (before extension) (Opt)
-function download {
-  f=$(curl --connect-timeout 2 -JLO http://"$1"/download/"$2"/placeholder | grep -oP "(?<=curl: Saved to filename ')[^']*");
-
-  # Check if name or appendation has been provided
-  if [ "$?" -eq 0 ] && [ "$3" ] || [ "$4" ]; then
-    oldf="$f"
-
-    # Defined name or dir
-    if [ "$3" ]; then
-      if [ -d "$3" ]; then # Dir
-        f="${3%/}/$f"
-      else
-        f="$3" # Name
-      fi
-    fi
-
-    # Append to name
-    if [ "$4" ]; then
-      if [[ $f =~ ^.*\..*$ ]]; then
-        ext=".${f##*.}"
-      fi
-      f="${f%.*}$4$ext"
-    fi
-
-    # Move/Rename file
-    mv "$oldf" "$f"
-    if [ "$?" -eq 1 ]; then
-      echo "repull: Failed to move or rename $oldf to $f"
-      return
-    fi
-  fi
 }
 
 # Grep remote fs (grep on reMarkable)
@@ -84,59 +42,237 @@ function download {
 # $2 - regex
 # $3 - File(s)
 
-# $RET - Match(es)
+# $RET_MATCH - Match(es)
 function rmtgrep {
-  RET="$(ssh root@10.11.99.1 "grep -$1 '$2' $3")"
+  RET_MATCH="$(ssh -S remarkable-ssh root@"$SSH_ADDRESS" "grep -$1 '$2' $3")"
 }
 
-# Recursively Search File(s)
+# Downloads document trough the webui
+
+# $1 - WebUI address (10.11.99.1)
+# $2 - File UUID
+# $3 - Output path
+function download {
+
+  wget_out="$(wget --content-disposition http://"$1"/download/"$2"/placeholder 2>&1 >/dev/null)"
+
+  if [ "$?" -ne 0 ]; then
+    echo "repull: Download failed"
+    ssh -S remarkable-ssh -O exit root@"$SSH_ADDRESS"
+    exit -1
+  fi
+
+  file_name="$(echo "$wget_out" | grep --color -oP '(?<=Saving to\: ‘).*(?=’)')"
+
+  if [ -d "$3" ]; then
+    new_file_name=${file_name#"'"}
+    new_file_name=${new_file_name%"'"}
+
+    suffix=1
+    safe_file_name="$new_file_name"
+    while [[ -f "$safe_file_name" || -d "$safe_file_name" ]]; do
+      safe_file_name="$new_file_name ($suffix)"
+      ((suffix++))
+    done
+
+    mv "$file_name" "$3/$safe_file_name"
+  else
+    mv "$file_name" "$3"
+  fi
+
+}
+
+# Recursively download a directory
+
+# $1 - WebUI address (10.11.99.1)
+# $2 - Directory UUID
+# $3 - Output directory
+# $4 - Parent path (Name)
+
+# $? - 1: Success | 0: Directory Empty
+function download_dir {
+
+  rmtgrep "lF" "\"parent\": \"$2\"" "/home/root/.local/share/remarkable/xochitl/*.metadata"
+  child_metadata="$RET_MATCH"
+
+  if [ -z "$child_metadata" ]; then
+    return 0
+  fi
+
+  child_directories=()
+
+  for metadata in $child_metadata; do
+
+    rmtgrep "F" '"deleted": true' "$metadata"
+    deleted="$RET_MATCH"
+
+    if [ -n "$deleted" ]; then
+      continue
+    fi
+
+    rmtgrep "F" '"type": "DocumentType"' "$metadata"
+    is_file="$RET_MATCH"
+
+    if [ -n "$is_file" ]; then
+
+      visible_name="$(ssh root@"$SSH_ADDRESS" "cat $metadata" | grep -oP "(?<=\"visibleName\"\: \").*(?=\"\$)")"
+      echo "repull: Pulling '$4/$visible_name'"
+
+      uuid="$(basename "$metadata" .metadata)"
+      download "$1" "$uuid" "$3"
+
+    else
+      child_directories+=("$metadata")
+    fi
+  done
+
+  for metadata in "${child_directories[@]}"; do
+
+    visible_name="$(ssh root@"$SSH_ADDRESS" "cat $metadata" | grep -oP "(?<=\"visibleName\"\: \").*(?=\"\$)")"
+    safe_visible_name="$visible_name"
+
+    suffix=1  # Regex order has been optimized
+
+    while [[ -d "$3/$safe_visible_name" || -f "$3/$safe_visible_name" ]]; do
+      safe_visible_name="$visible_name ($suffix)"
+      ((suffix++))
+    done
+
+    mkdir "$3/$safe_visible_name"
+    if [ $? -ne 0 ]; then
+      echo "repull: Failed to create directory: $3/$safe_visible_name"
+      ssh -S remarkable-ssh -O exit root@"$SSH_ADDRESS"
+      exit -1
+    fi
+
+    download_dir "$1" "$(basename "$metadata" .metadata)" "$3/$safe_visible_name" "$4/$safe_visible_name"
+
+    if [ $? -eq 0 ]; then
+      rm -rf "$3/$safe_visible_name"
+    fi
+
+  done
+
+  return 1
+
+}
+
+# Recursively Search Document(s)
 
 # $1 - UUID of parent
 # $2 - Path
 # $3 - Current Itteration
 
-# $FOUND - List of matched UUIDs
-function find {
+# $RET_FOUND - List of matched UUIDs
+function find_document {
   OLD_IFS=$IFS
   IFS='/' _PATH=(${2#/}) # Sort path into array
   IFS=$OLD_IFS
 
-  # Nested greps are nightmare to debug, trust me...
+  RET_FOUND=()
 
-  REGEX_NOT_DELETED='"deleted": false'
-  REGEX_BY_VISIBLE_NAME="\\\"visibleName\": \\\"${_PATH[$3]}\\\""
-  REGEX_BY_PARENT="\\\"parent\\\": \\\"$1\\\""
+  rmtgrep "lF" "\"visibleName\": \"${_PATH[$3]}\"" "/home/root/.local/share/remarkable/xochitl/*.metadata"
+  matches_by_name="$RET_MATCH"
 
-  if [ "$(expr $3 + 1)" -eq "${#_PATH[@]}" ]; then   # Last entry must be of Document Type ( Document/File )
-    REGEX_BY_TYPE='"type": "DocumentType"'
-  else                                               # Otherwise, it must be of Collection Type ( Directory )
-    REGEX_BY_TYPE='"type": "CollectionType"'
-  fi
+  for metadata in $matches_by_name; do
 
-  # Regex order has been optimized
-  FILTER=( "$REGEX_BY_VISIBLE_NAME" "$REGEX_BY_PARENT" "$REGEX_BY_TYPE" "$REGEX_NOT_DELETED" )
-  RET="/home/root/.local/share/remarkable/xochitl/*.metadata" # Overwritten by rmtgrep
-  for regex in "${FILTER[@]}"; do
-    rmtgrep "l" "$regex" "$(echo $RET | tr '\n' ' ')"
-    if [ -z "$RET" ]; then
-      break
+    rmtgrep "F" "\"parent\": \"$1\"" "$metadata"
+    is_child="$RET_MATCH"
+
+    if [ -z is_child ]; then
+      continue
     fi
-  done
 
-  matches=( $(echo "$RET" | grep -o '[a-z0-9]*\-[a-z0-9]*\-[a-z0-9]*\-[a-z0-9]*\-[a-z0-9]*') )
-  for match in "${matches[@]}"; do
-    if [ "$(expr $3 + 1)" -eq "${#_PATH[@]}" ]; then # End of path
-      FOUND+=($match);
+    rmtgrep "F" '"deleted": true' "$metadata"
+    deleted="$RET_MATCH"
+
+    if [ -z deleted ]; then
+      continue
+    fi
+
+    if [[ "$(expr $3 + 1)" -eq "${#_PATH[@]}" ]]; then
+
+      rmtgrep "F" '"type": "DocumentType"' "$metadata"
+      is_document="$RET_MATCH"
+
+      if [ -n "$is_document" ]; then
+        RET_FOUND+=("$(basename "$metadata" .metadata)")
+      fi
+
     else
-      matches=()
-      find "$match" "$2" "$(expr $3 + 1)"            # Expand tree
+
+      rmtgrep "F" '"type": "CollectionType"' "$metadata"
+      is_directory="$RET_MATCH"
+
+      if [ -n "$is_directory" ]; then
+        find_document "$(basename "$metadata" .metadata)" "$2" "$(expr $3 + 1)"
+      fi
+
     fi
+
   done
 }
 
+# Recursively Search a Directory
+
+# $1 - UUID of parent
+# $2 - Path
+# $3 - Current Itteration
+
+# $RET_FOUND - List of matched UUIDs
+function find_directory {
+  OLD_IFS=$IFS
+  IFS='/' _PATH=(${2#/}) # Sort path into array
+  IFS=$OLD_IFS
+
+  RET_FOUND=()
+
+  rmtgrep "lF" "\"visibleName\": \"${_PATH[$3]}\"" "/home/root/.local/share/remarkable/xochitl/*.metadata"
+  matches_by_name="$RET_MATCH"
+
+  for metadata in $matches_by_name; do
+
+    rmtgrep "F" "\"parent\": \"$1\"" "$metadata"
+    is_child="$RET_MATCH"
+
+    if [ -z is_child ]; then
+      continue
+    fi
+
+    rmtgrep "F" '"deleted": true' "$metadata"
+    deleted="$RET_MATCH"
+
+    if [ -z deleted ]; then
+      continue
+    fi
+
+    rmtgrep "F" '"type": "CollectionType"' "$metadata"
+    is_directory="$RET_MATCH"
+
+    if [ -z "$is_directory" ]; then
+      continue
+    fi
+
+    if [[ "$(expr $3 + 1)" -eq "${#_PATH[@]}" ]]; then
+      RET_FOUND+=("$(basename "$metadata" .metadata)")
+    else
+      find_directory "$(basename "$metadata" .metadata)" "$2" "$(expr $3 + 1)"
+    fi
+
+  done
+}
+
+OUTPUT="."
+
 # Evaluate Options/Parameters
-while getopts ":ho:r:p:" opt; do
+while getopts ":hdo:r:p:" opt; do
   case "$opt" in
+
+    h) # Usage help
+      usage
+      exit 1
+      ;;
+
     o) # Output path
       OUTPUT="$OPTARG"
       ;;
@@ -150,9 +286,8 @@ while getopts ":ho:r:p:" opt; do
       PORT="$OPTARG"
       ;;
 
-    h) # Usage help
-      usage
-      exit 1
+    d) # Download directory
+      path_is_directory=true
       ;;
 
     ?) # Unkown Option
@@ -160,18 +295,25 @@ while getopts ":ho:r:p:" opt; do
       usage
       exit -1
       ;;
+
   esac
 done
 shift $((OPTIND-1))
 
-# Check for minimm argument count
+# Check for minimum argument count
 if [ -z "$1" ];  then
-  echo "repull: No document names provided"
+
+  if [ -n "$path_is_directory" ]; then
+    echo "repull: No directory provided"
+  else
+    echo "repull: No document provided"
+  fi
+
   usage
   exit -1
 fi
 
-if [ "$OUTPUT" ] && [ $# -gt 1 ] && [ ! -d "$OUTPUT" ]; then
+if [[ -n "$OUTPUT" && $# -gt 1 ]] && [ ! -d "$OUTPUT" ]; then
   echo "repull: Output path '$OUTPUT' is not a directory"
   exit -1
 fi
@@ -191,105 +333,111 @@ if [ "$REMOTE" ]; then
   fi
 
   WEBUI_ADDRESS="localhost:$PORT"
+  echo "repull: Established remote connection to the reMarkable web interface"
 else
-  ssh -M -S remarkable-ssh -q -f root@"$SSH_ADDRESS" -N
+  ssh -o ConnectTimeout=1 -M -S remarkable-ssh -q -f root@"$SSH_ADDRESS" -N
+
+  if [ "$?" -ne 0 ]; then
+    echo "repull: Failed to establish connection with the device!"
+    exit -1
+  fi
 fi
 
 # Check if name matches document
 # this way we can prevent unecessary pulling
 for path in "$@"; do
 
-  find "" "$path" 0
+  if [ -n "$path_is_directory" ]; then
+    find_directory "" "$path" 0
+  else
+    find_document "" "$path" 0
+  fi
 
-  if [ "$FOUND" ]; then
-    if [ "${#FOUND[@]}" -gt 1 ]; then
-      REGEX='"lastModified": "[^"]*"'
-      FOUND=( "${FOUND[@]/#//home/root/.local/share/remarkable/xochitl/}" )
-      GREP="grep -o '$REGEX' ${FOUND[@]/%/.metadata}"
-      match="$(ssh -S remarkable-ssh root@"$SSH_ADDRESS" "$GREP")"
+  # Entry not found
+  if [ "${#RET_FOUND[@]}" -eq 0 ]; then
 
-      # Sort metadata by date
-      metadata=($(echo $match | sed "s/ //g" | sort -rn -t'"' -k4))
+    if [ -n "$path_is_directory" ]; then
+      echo "repull: Unable to find directory: $path"
+    else
+      echo "repull: Unable to find document: $path"
+    fi
 
-      # Create synchronized arrays consisting of file metadata
-      uuid=($(echo "${metadata[@]}" | grep -o '[a-z0-9]*\-[a-z0-9]*\-[a-z0-9]*\-[a-z0-9]*\-[a-z0-9]*')) # UUIDs sorted by date
-      lastModified=($(echo "${metadata[@]}" | grep -o '"lastModified":"[0-9]*"' | grep -o '[0-9]*'))    # Date and time of last modification
+    ssh -S remarkable-ssh -O exit root@"$SSH_ADDRESS"
+    exit -1
+
+  # Mutiple matches
+elif [ "${#RET_FOUND[@]}" -gt 1 ]; then
+    REGEX='"lastModified": "[^"]*"'
+    RET_FOUND=( "${RET_FOUND[@]/#//home/root/.local/share/remarkable/xochitl/}" )
+    GREP="grep -o '$REGEX' ${RET_FOUND[@]/%/.metadata}"
+    match="$(ssh -S remarkable-ssh root@"$SSH_ADDRESS" "$GREP")" # Returns string that includes Metadata Path + Modification date
+
+    # Sort metadata by date
+    metadata=($(echo "$match" | sed "s/ //g" | sort -rn -t'"' -k4))
+
+    # Create synchronized arrays consisting of file metadata
+    uuid=($(echo "${metadata[@]}" | grep -o '[a-z0-9]*\-[a-z0-9]*\-[a-z0-9]*\-[a-z0-9]*\-[a-z0-9]*')) # UUIDs sorted by date
+    lastModified=($(echo "${metadata[@]}" | grep -o '"lastModified":"[0-9]*"' | grep -o '[0-9]*'))    # Date and time of last modification
+
+    echo
+
+    if [ -n "$path_is_directory" ]; then
+      echo "'$path' matches multiple directories!"
+    else
+      echo "'$path' matches multiple files!"
+    fi
+
+    while true; do
+      echo
+
+      # Display file id's from most recently modified to oldest
+      for (( i=0; i<${#uuid[@]}; i++ )); do
+        echo -e "$(expr $i + 1). ${uuid[$i]} - Last modified $(date -d @$(expr ${lastModified[$i]} / 1000) '+%Y-%m-%d %H:%M:%S')"
+      done
 
       echo
-      echo "$path matches multiple documents!"
-      while true; do
-        echo
+      read -rp "Select your target directory: " INPUT
+      echo
 
-        # Display file id's from most recently modified to oldest
-        for (( i=0; i<${#uuid[@]}; i++ )); do
-          echo -e "$(expr $i + 1). ${uuid[$i]} - Last modified $(date -d @$(expr ${lastModified[$i]} / 1000) '+%Y-%m-%d %H:%M:%S')"
-        done
-
-        echo
-        read -r -p "Select one or more documents to be downloaded [ie. 1, 1 2 3 or 1-3]: " input
-
-        # Input is a range
-        if [[ "$input" =~ ^([1-9][0-9]*)\ *\-\ *([1-9][0-9]*)\ *$ ]]; then
-          start=${BASH_REMATCH[1]}
-          end=${BASH_REMATCH[2]}
-          if [ "$start" -gt $i ] || [ "$end" -gt $i ] || [ "$start" -gt $end ]; then
-            echo
-            echo "Invalid order or index out of range"
-            continue
-          fi
-
-          # Fetch requested files
-          for (( i=$start-1; i<$end; i++ )); do
-            date=$(date -d @"$(expr ${lastModified[$i]} / 1000)" '+%Y%m%d%H%M%S')
-            download "$WEBUI_ADDRESS" "${uuid[i]}" "$OUTPUT" "($date)"
-            if [ $? -eq 0 ]; then
-              echo "$f: Success"
-            else
-              echo "$(basename "$path")($date): Failed"
-            fi
-          done
-          break
-
-        # Input is one or more numbers
-        elif [[ "$input" =~ ^([1-9][0-9]*\ *)*$ ]]; then
-
-          # Check input validity before pulling
-          INPUT_VALID=1
-          for j in $input; do
-            if [ "$j" -gt "$i" ]; then
-              echo "Index: '$j' out of range!"
-              INPUT_VALID=0
-            fi
-          done
-
-          if [ "$INPUT_VALID" -eq 1 ]; then
-            # Input valid, time to pull!
-            for j in $input; do
-              ((j--)) # Decrement itterator to match array index
-              date=$(date -d @"$(expr ${lastModified[$j]} / 1000)" '+%Y%m%d%H%M%S')
-              download "$WEBUI_ADDRESS" "${uuid[j]}" "$OUTPUT" "($date)"
-              if [ $? -eq 0 ]; then
-                echo "$f: Success"
-              else
-                echo "$(basename "$path")($date): Failed"
-              fi
-            done
-            break
-          fi
-        fi
-      done
-    else
-      echo "Downloading document..."
-      download "$WEBUI_ADDRESS" "$FOUND" "$OUTPUT" ""
-      if [ $? -eq 0 ]; then
-        echo "$f: Success"
-      else
-        echo "$path: Failed"
+      if [[ "$INPUT" -gt 0  && "$INPUT" -lt $(expr $i + 1) ]]; then
+        OUTPUT_UUID="${uuid[(($INPUT-1))]}"
+        break
       fi
-    fi
+
+      echo "Invalid input"
+    done
+
+  # Entry found
   else
-    echo "Unable to find document for '$path'"
+    OUTPUT_UUID="$RET_FOUND"
   fi
+
+  if [ -n "$path_is_directory" ]; then
+
+    if [ -d $OUTPUT ]; then
+      local_dir="$OUTPUT/$(echo "$path" | cut -d "/" -f2)"
+    else
+      local_dir="$OUTPUT"
+    fi
+
+    mkdir "$local_dir"
+
+    if [ $? -ne 0 ]; then
+      echo "repull: Failed to create local directory: $local_dir"
+      exit -1
+    fi
+
+    download_dir "$WEBUI_ADDRESS" "$OUTPUT_UUID" "$local_dir" "$(echo /$path | tr -s '/')"
+
+    if [ "$?" -eq 0 ]; then
+      echo "repull: Refused to download $path, directory empty!"
+    fi
+
+  else
+    echo "repull: Pulling '$path'"
+    download "$WEBUI_ADDRESS" "$OUTPUT_UUID" "$OUTPUT"
+  fi
+
 done
 
 ssh -S remarkable-ssh -O exit root@"$SSH_ADDRESS"
