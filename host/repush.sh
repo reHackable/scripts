@@ -243,6 +243,7 @@ for f in "$@"; do
   fi
 done
 
+# Establish remote connection
 if [ "$REMOTE" ]; then
   if nc -z localhost "$PORT" > /dev/null; then
     echo "repush: Port $PORT is already used by a different process!"
@@ -276,10 +277,12 @@ done
 rm -rf "/tmp/repush"
 mkdir -p "/tmp/repush"
 
+# Find output directory
 OUTPUT_UUID=""
 if [ "$OUTPUT" ]; then
   find_directory '' "$OUTPUT" '0'
 
+  # Multiple directories match
   if [ "${#RET_FOUND[@]}" -gt 1 ]; then
     REGEX='"lastModified": "[^"]*"'
     RET_FOUND=( "${RET_FOUND[@]/#//home/root/.local/share/remarkable/xochitl/}" )
@@ -314,16 +317,19 @@ if [ "$OUTPUT" ]; then
       echo "Invalid input"
     done
 
+  # Directory not found
   elif [ "${#RET_FOUND[@]}" -eq 0 ]; then
     echo "Unable to find output directory: $OUTPUT"
     rm -rf /tmp/repush
     ssh -S remarkable-ssh -O exit root@"$SSH_ADDRESS"
     exit -1
 
+  # Directory found
   else
     OUTPUT_UUID="$RET_FOUND"
   fi
 
+  # Disable wifi to prevent conflicts with cloud
   RFKILL="$(ssh -S remarkable-ssh root@"$SSH_ADDRESS" "/usr/sbin/rfkill list 0 | grep 'blocked: yes'")"
   if [ -z "$RFKILL" ]; then
     echo "Temporarily disabling Wi-Fi to prevent conflicts with the cloud"
@@ -332,6 +338,7 @@ if [ "$OUTPUT" ]; then
   fi
 fi
 
+# Push documents
 success=0
 for f in "$@"; do
   push "$f"
@@ -355,6 +362,7 @@ for f in "$@"; do
   fi
 done
 
+# Restart xochitl to apply changes to metadata
 if [ "$OUTPUT" ]; then
   echo "Applying changes..."
   ssh -S remarkable-ssh root@"$SSH_ADDRESS" "systemctl restart xochitl;"

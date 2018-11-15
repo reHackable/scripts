@@ -291,6 +291,7 @@ if [[ -n "$OUTPUT" && $# -gt 1 ]] && [ ! -d "$OUTPUT" ]; then
   exit -1
 fi
 
+# Establish remote connection
 if [ "$REMOTE" ]; then
   if nc -z localhost "$PORT" > /dev/null; then
     echo "repull: Port $PORT is already used by a different process!"
@@ -308,8 +309,7 @@ if [ "$?" -ne 0 ]; then
   exit -1
 fi
 
-# Check if name matches document
-# this way we can prevent unecessary pulling
+# Find and pull documents
 for path in "$@"; do
 
   if [ -n "$path_is_directory" ]; then
@@ -330,7 +330,8 @@ for path in "$@"; do
     ssh -S remarkable-ssh -O exit root@"$SSH_ADDRESS"
     exit -1
 
-elif [ "${#RET_FOUND[@]}" -gt 1 ]; then
+  # Multiple entries match
+  elif [ "${#RET_FOUND[@]}" -gt 1 ]; then
     REGEX='"lastModified": "[^"]*"'
     RET_FOUND=( "${RET_FOUND[@]/#//home/root/.local/share/remarkable/xochitl/}" )
     GREP="grep -o '$REGEX' ${RET_FOUND[@]/%/.metadata}"
@@ -376,6 +377,7 @@ elif [ "${#RET_FOUND[@]}" -gt 1 ]; then
     OUTPUT_UUID="$RET_FOUND"
   fi
 
+  # Pull directory
   if [ -n "$path_is_directory" ]; then
 
     if [ -d $OUTPUT ]; then
@@ -397,6 +399,7 @@ elif [ "${#RET_FOUND[@]}" -gt 1 ]; then
       echo "repull: Refused to download $path, directory empty!"
     fi
 
+  # Pull Document
   else
     echo "repull: Pulling '$path'"
     download "$WEBUI_ADDRESS" "$OUTPUT_UUID" "$OUTPUT"
