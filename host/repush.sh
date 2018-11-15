@@ -240,6 +240,9 @@ for f in "$@"; do
     echo "Unsupported file format: $f"
     echo "Only PDFs and EPUBs are supported"
     exit -1
+  elif [[ -z "$(echo "$f" | grep -oP "\.pdf$")" && -z "$(echo "$f" | grep -oP "\.epub$")" ]]; then
+    echo "File extension invalid or missing: $f"
+    exit -1
   fi
 done
 
