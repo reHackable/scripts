@@ -179,7 +179,7 @@ function push {
 
     else
       retry=""
-      echo "$1: Failed"
+      echo "repush: $1: Failed"
       read -r -p "Failed to push file! Retry? [Y/n]: " retry
 
       if [[ $retry == "n" || $retry == "N" ]]; then
@@ -215,7 +215,7 @@ while getopts ":hdr:p:o:" opt; do
       ;;
 
     ?) # Unkown Option
-      echo "Invalid option or missing arguments: -$OPTARG"
+      echo "repush: Invalid option or missing arguments: -$OPTARG"
       usage
       exit -1
       ;;
@@ -225,7 +225,7 @@ shift $((OPTIND-1))
 
 # Check for minimum argument count
 if [ -z "$1" ];  then
-  echo "No documents provided"
+  echo "repush: No documents provided"
   usage
   exit -1
 fi
@@ -234,14 +234,14 @@ fi
 for f in "$@"; do
   file_cmd_output="$(file -F '|' "$f")"
   if [ ! -f "$f" ]; then
-    echo "No such file: $f"
+    echo "repush: No such file: $f"
     exit -1
   elif [[ -z "$(echo "$file_cmd_output" | grep -o "| PDF")" && -z "$(echo "$file_cmd_output" | grep -o "| EPUB")" ]]; then
-    echo "Unsupported file format: $f"
-    echo "Only PDFs and EPUBs are supported"
+    echo "repush: Unsupported file format: $f"
+    echo "repush: Only PDFs and EPUBs are supported"
     exit -1
   elif [[ -z "$(echo "$f" | grep -oP "\.pdf$")" && -z "$(echo "$f" | grep -oP "\.epub$")" ]]; then
-    echo "File extension invalid or missing: $f"
+    echo "repush: File extension invalid or missing: $f"
     exit -1
   fi
 done
@@ -322,7 +322,7 @@ if [ "$OUTPUT" ]; then
 
   # Directory not found
   elif [ "${#RET_FOUND[@]}" -eq 0 ]; then
-    echo "Unable to find output directory: $OUTPUT"
+    echo "repush: Unable to find output directory: $OUTPUT"
     rm -rf /tmp/repush
     ssh -S remarkable-ssh -O exit root@"$SSH_ADDRESS"
     exit -1
@@ -335,7 +335,7 @@ if [ "$OUTPUT" ]; then
   # Disable wifi to prevent conflicts with cloud
   RFKILL="$(ssh -S remarkable-ssh root@"$SSH_ADDRESS" "/usr/sbin/rfkill list 0 | grep 'blocked: yes'")"
   if [ -z "$RFKILL" ]; then
-    echo "Temporarily disabling Wi-Fi to prevent conflicts with the cloud"
+    echo "repush: Temporarily disabling Wi-Fi to prevent conflicts with the cloud"
     ssh -S remarkable-ssh root@"$SSH_ADDRESS" "/usr/sbin/rfkill block 0"
     echo
   fi
@@ -356,22 +356,22 @@ for f in "$@"; do
     if [ "$DELETE_ON_PUSH" ]; then
       rm "$f"
       if [ $? -ne 0 ]; then
-        echo "Failed to remove $f"
+        echo "repush: Failed to remove $f"
       fi
     fi
     ((success++))
   else
-    echo "$f: Failed"
+    echo "repush: $f: Failed"
   fi
 done
 
 # Restart xochitl to apply changes to metadata
 if [ "$OUTPUT" ]; then
-  echo "Applying changes..."
+  echo "repush: Applying changes..."
   ssh -S remarkable-ssh root@"$SSH_ADDRESS" "systemctl restart xochitl;"
 
   if [ -z "$RFKILL" ]; then
-    echo "Re-enabling Wi-Fi in 5 seconds..."
+    echo "repush: Re-enabling Wi-Fi in 5 seconds..."
     echo
     ssh -S remarkable-ssh root@"$SSH_ADDRESS" "sleep 5; /usr/sbin/rfkill unblock 0"
   fi
@@ -379,4 +379,4 @@ fi
 
 rm -rf /tmp/repush
 ssh -S remarkable-ssh -O exit root@"$SSH_ADDRESS"
-echo "Successfully transferred $success out of $# documents"
+echo "repush: Successfully transferred $success out of $# documents"
