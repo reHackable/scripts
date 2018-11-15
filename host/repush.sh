@@ -285,8 +285,15 @@ OUTPUT_UUID=""
 if [ "$OUTPUT" ]; then
   find_directory '' "$OUTPUT" '0'
 
+  # Directory not found
+  if [ "${#RET_FOUND[@]}" -eq 0 ]; then
+    echo "repush: Unable to find output directory: $OUTPUT"
+    rm -rf /tmp/repush
+    ssh -S remarkable-ssh -O exit root@"$SSH_ADDRESS"
+    exit -1
+    
   # Multiple directories match
-  if [ "${#RET_FOUND[@]}" -gt 1 ]; then
+  elif [ "${#RET_FOUND[@]}" -gt 1 ]; then
     REGEX='"lastModified": "[^"]*"'
     RET_FOUND=( "${RET_FOUND[@]/#//home/root/.local/share/remarkable/xochitl/}" )
     GREP="grep -o '$REGEX' ${RET_FOUND[@]/%/.metadata}"
@@ -319,13 +326,6 @@ if [ "$OUTPUT" ]; then
 
       echo "Invalid input"
     done
-
-  # Directory not found
-  elif [ "${#RET_FOUND[@]}" -eq 0 ]; then
-    echo "repush: Unable to find output directory: $OUTPUT"
-    rm -rf /tmp/repush
-    ssh -S remarkable-ssh -O exit root@"$SSH_ADDRESS"
-    exit -1
 
   # Directory found
   else
