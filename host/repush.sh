@@ -23,6 +23,9 @@
 
 # Usage         : https://github.com/reHackable/scripts/wiki/repush.sh
 
+# Current version (MAJOR.MINOR)
+VERSION="2.0"
+
 # Local
 SSH_ADDRESS="10.11.99.1"
 WEBUI_ADDRESS="10.11.99.1:80"
@@ -31,9 +34,11 @@ WEBUI_ADDRESS="10.11.99.1:80"
 PORT=9000 # Deault port to which the webui is tunneled to
 
 function usage {
-  echo "Usage: repush.sh [-o output] [-d] [-r ip] [-p port] doc1 [doc2 ...]"
+  echo "Usage: repush.sh [-v] [-h] [-o output] [-d] [-r ip] [-p port] doc1 [doc2 ...]"
   echo
   echo "Options:"
+  echo -e "-v\t\t\tDisplay version and exit"
+  echo -e "-h\t\t\tDisplay usage and exit"
   echo -e "-o\t\t\tOutput directory to which the provided files will be uploaded to"
   echo -e "-d\t\t\tDelete file after successful push"
   echo -e "-r\t\t\tPush remotely via ssh tunneling"
@@ -190,10 +195,15 @@ function push {
 }
 
 # Evaluate Options/Parameters
-while getopts ":hdr:p:o:" opt; do
+while getopts ":vhdr:p:o:" opt; do
   case "$opt" in
     h) # Usage help
       usage
+      exit 1
+      ;;
+
+    v) # Version
+      echo "repush version: $VERSION"
       exit 1
       ;;
 

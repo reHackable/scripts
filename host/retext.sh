@@ -13,8 +13,8 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-# Author        :  Patrick Pedersen <ctx.xda@gmail.com>,
-#                  Part of the reHackable organization <https://github.com/reHackable>
+# Author        : Patrick Pedersen <ctx.xda@gmail.com>,
+#                 Part of the reHackable organization <https://github.com/reHackable>
 
 # Description   : Host sided reMarkable tablet script that sets epub text settings back to default
 
@@ -25,6 +25,9 @@
 
 #                When epubs are set back to their initial state, their cache files are deleted.
 #                due to this, the epub may take some time to load on first open
+
+# Current version (MAJOR.MINOR)
+VERSION="1.0"
 
 SSH_ADDRESS="10.11.99.1"
 
@@ -56,7 +59,8 @@ function usage {
   echo "Usage: repull.sh [-h] [-r ssh_address] path_to_epub1 [path_to_epub2 ...]"
   echo ""
   echo "Options:"
-  echo -e "-h\t\tDisplay this usage guide"
+  echo -e "-v\t\tDisplay version and exit"
+  echo -e "-h\t\tDisplay usage and exit"
   echo -e "-r\t\tAccess device remotely"
 }
 
@@ -123,6 +127,9 @@ if [ -z "$1" ]; then
   echo "No documents provided"
   echo
   usage
+  exit -1
+elif [[ "$1" == "-v" ]]; then
+  echo "retext version: $VERSION"
   exit -1
 elif [[ "$1" == "-h" ]]; then
   usage

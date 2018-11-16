@@ -21,17 +21,22 @@
 
 # Dependencies  : wget, ssh, nc, date, grep
 
+# Current version (MAJOR.MINOR)
+VERSION="2.0"
+
 # Default Values
 WEBUI_ADDRESS="10.11.99.1:80"
 SSH_ADDRESS="10.11.99.1"
 PORT=9000                     # Deault port to which the webui is tunneled to
 
 function usage {
-  echo "Usage: repull.sh [-d] [-o out] [-r ip] [-p port] path [path ...]"
+  echo "Usage: repull.sh [-v] [-h] [-d] [-o out] [-r ip] [-p port] path [path ...]"
   echo
   echo "Options:"
-  echo -e "-o\t\t\tOutput file or directory"
+  echo -e "-v\t\t\tDisplay version and exit"
+  echo -e "-h\t\t\tDisplay usage and exit"
   echo -e "-d\t\t\tRecursively pull directories"
+  echo -e "-o\t\t\tOutput file or directory"
   echo -e "-r\t\t\tPull remotely via ssh tunneling"
   echo -e "-p\t\t\tIf -r has been given, this option defines port to which the webui will be tunneled (default 9000)"
 }
@@ -238,8 +243,13 @@ function find_directory {
 OUTPUT="."
 
 # Evaluate Options/Parameters
-while getopts ":hdo:r:p:" opt; do
+while getopts ":vhdo:r:p:" opt; do
   case "$opt" in
+
+    v) # Version
+      echo "repull version: $VERSION"
+      exit 1
+      ;;
 
     h) # Usage help
       usage

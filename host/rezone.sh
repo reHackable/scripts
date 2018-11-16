@@ -13,8 +13,8 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-# Author        :  Patrick Pedersen <ctx.xda@gmail.com>,
-#                  Part of the reHackable organization <https://github.com/reHackable>
+# Author        : Patrick Pedersen <ctx.xda@gmail.com>,
+#                 Part of the reHackable organization <https://github.com/reHackable>
 
 # Description   : Host sided script that can change the timezone on your reMarkable
 #                 according to the host or a specified timezone.
@@ -24,13 +24,17 @@
 # Notations     : I started reading a book about the regex language (Mastering Regular Expressions by Jeffrey E.F. Friedl).
 #                 How did I manage to come this far in life without regular expressions!!!
 
+# Current version (MAJOR.MINOR)
+VERSION="1.0"
+
 # Usage
 function usage {
-  echo "Usage: rezone.sh [SSH | -h | -help | --help]"
+  echo "Usage: rezone.sh [SSH | -v | -version | --version | -h | -help | --help]"
   echo
   echo "Arguments:"
   echo -e "SSH\t\t\tDevices SSH address (default 10.11.99.1)"
-  echo -e "-h -help --help\t\tDisplays script usage (this)"
+  echo -e "-v -version --version\t\tDisplay version and exit"
+  echo -e "-h -help --help\t\tDisplay usage and exit"
   echo
 }
 
@@ -44,6 +48,9 @@ shopt -s nocasematch
 if [[ "$1" =~ --help|-h(elp)? ]]; then
   usage
   exit 1
+elif [[ "$1" =~ --version|-v(version)? ]]; then
+  echo "rezone version: $VERSION"
+  exit -1
 fi
 
 # Check if too many parameters have been provided

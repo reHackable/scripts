@@ -28,19 +28,26 @@
 #                 To make it clear, this script is mainly intended for users that rarely use wifi on their device or users that
 #                 frequently manually remove or add entries to the filesystem
 
+# Current version (MAJOR.MINOR)
+VERSION="1.0"
+
 SSH_ADDRESS="10.11.99.1"
 
 function usage {
-  echo "Usage: reclean.sh [-h | ssh address]"
+  echo "Usage: reclean.sh [-v | -h | ssh address]"
   echo
   echo "Options:"
-  echo -e "-h\t\t\tDisplay script usage"
+  echo -e "-v\t\t\tDisplay version and exit"
+  echo -e "-h\t\t\tDisplay usage and exit"
   echo -e "ip\t\t\tSSH address of the device (default set to 10.11.99.1)"
 }
 
 # Check Arguments
 if [ "$#" -gt 1 ] || [[ "$1" == "-h" ]]; then
   usage
+  exit -1
+elif [[ "$1" == "-v" ]]; then
+  echo "reclean version: $VERSION"
   exit -1
 elif [ "$#" -eq 1 ]; then
   SSH_ADDRESS="$1"
