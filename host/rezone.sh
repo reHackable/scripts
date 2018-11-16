@@ -33,7 +33,7 @@ function usage {
   echo
   echo "Arguments:"
   echo -e "SSH\t\t\tDevices SSH address (default 10.11.99.1)"
-  echo -e "-v -version --version\t\tDisplay version and exit"
+  echo -e "-v -version --version\tDisplay version and exit"
   echo -e "-h -help --help\t\tDisplay usage and exit"
   echo
 }
