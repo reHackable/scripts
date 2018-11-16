@@ -291,7 +291,7 @@ if [ "$OUTPUT" ]; then
     rm -rf /tmp/repush
     ssh -S remarkable-ssh -O exit root@"$SSH_ADDRESS"
     exit -1
-    
+
   # Multiple directories match
   elif [ "${#RET_FOUND[@]}" -gt 1 ]; then
     REGEX='"lastModified": "[^"]*"'
@@ -333,11 +333,13 @@ if [ "$OUTPUT" ]; then
   fi
 
   # Disable wifi to prevent conflicts with cloud
-  RFKILL="$(ssh -S remarkable-ssh root@"$SSH_ADDRESS" "/usr/sbin/rfkill list 0 | grep 'blocked: yes'")"
-  if [ -z "$RFKILL" ]; then
-    echo "repush: Temporarily disabling Wi-Fi to prevent conflicts with the cloud"
-    ssh -S remarkable-ssh root@"$SSH_ADDRESS" "/usr/sbin/rfkill block 0"
-    echo
+  if [ -z "$REMOTE" ]; then
+    RFKILL="$(ssh -S remarkable-ssh root@"$SSH_ADDRESS" "/usr/sbin/rfkill list 0 | grep 'blocked: yes'")"
+    if [ -z "$RFKILL" ]; then
+      echo "repush: Temporarily disabling Wi-Fi to prevent conflicts with the cloud"
+      ssh -S remarkable-ssh root@"$SSH_ADDRESS" "/usr/sbin/rfkill block 0"
+      echo
+    fi
   fi
 fi
 
@@ -370,7 +372,7 @@ if [ "$OUTPUT" ]; then
   echo "repush: Applying changes..."
   ssh -S remarkable-ssh root@"$SSH_ADDRESS" "systemctl restart xochitl;"
 
-  if [ -z "$RFKILL" ]; then
+  if [[ -z "$REMOTE" && -z "$RFKILL" ]]; then
     echo "repush: Re-enabling Wi-Fi in 5 seconds..."
     echo
     ssh -S remarkable-ssh root@"$SSH_ADDRESS" "sleep 5; /usr/sbin/rfkill unblock 0"
