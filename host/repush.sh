@@ -24,7 +24,7 @@
 # Usage         : https://github.com/reHackable/scripts/wiki/repush.sh
 
 # Current version (MAJOR.MINOR)
-VERSION="2.0"
+VERSION="2.1"
 
 # Local
 SSH_ADDRESS="10.11.99.1"
@@ -346,9 +346,7 @@ if [ "$OUTPUT" ]; then
   if [ -z "$REMOTE" ]; then
     RFKILL="$(ssh -S remarkable-ssh root@"$SSH_ADDRESS" "/usr/sbin/rfkill list 0 | grep 'blocked: yes'")"
     if [ -z "$RFKILL" ]; then
-      echo "repush: Temporarily disabling Wi-Fi to prevent conflicts with the cloud"
       ssh -S remarkable-ssh root@"$SSH_ADDRESS" "/usr/sbin/rfkill block 0"
-      echo
     fi
   fi
 fi
@@ -379,14 +377,12 @@ done
 
 # Restart xochitl to apply changes to metadata
 if [ "$OUTPUT" ]; then
+  if [[ -z "$REMOTE" && -z "$RFKILL" ]]; then
+    ssh -S remarkable-ssh root@"$SSH_ADDRESS" "/usr/sbin/rfkill unblock 0"
+  fi
+
   echo "repush: Applying changes..."
   ssh -S remarkable-ssh root@"$SSH_ADDRESS" "systemctl restart xochitl;"
-
-  if [[ -z "$REMOTE" && -z "$RFKILL" ]]; then
-    echo "repush: Re-enabling Wi-Fi in 5 seconds..."
-    echo
-    ssh -S remarkable-ssh root@"$SSH_ADDRESS" "sleep 5; /usr/sbin/rfkill unblock 0"
-  fi
 fi
 
 rm -rf /tmp/repush
