@@ -22,7 +22,7 @@
 # Dependencies  : wget, ssh, nc, date, grep
 
 # Current version (MAJOR.MINOR)
-VERSION="2.1"
+VERSION="2.2"
 
 # Default Values
 WEBUI_ADDRESS="10.11.99.1:80"
@@ -39,12 +39,6 @@ function usage {
   echo -e "-o\t\t\tOutput file or directory"
   echo -e "-r\t\t\tPull remotely via ssh tunneling"
   echo -e "-p\t\t\tIf -r has been given, this option defines port to which the webui will be tunneled (default 9000)"
-}
-
-# Kills SSH session and exits return 0
-function exit_success {
-  ssh -S remarkable-ssh -O exit root@"$SSH_ADDRESS"
-  exit 0
 }
 
 # Kills SSH session and exits with return 1
@@ -258,12 +252,12 @@ while getopts ":vhdo:r:p:" opt; do
 
     v) # Version
       echo "repull version: $VERSION"
-      exit_success
+      exit 0
       ;;
 
     h) # Usage help
       usage
-      exit_success
+      exit 0
       ;;
 
     o) # Output path
