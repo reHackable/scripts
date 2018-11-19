@@ -125,7 +125,7 @@ function download_dir {
     fi
   done
 
-  for metadata in "${child_directories[@]}"; do
+  for metadata_path in "${child_directories[@]}"; do
 
     visible_name="$(ssh -S remarkable-ssh root@"$SSH_ADDRESS" "cat $metadata_path" | grep -oP "(?<=\"visibleName\"\: \").*(?=\"\$)")"
     safe_visible_name="$visible_name"
