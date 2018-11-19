@@ -22,7 +22,7 @@
 # Dependencies  : wget, ssh, nc, date, grep
 
 # Current version (MAJOR.MINOR)
-VERSION="2.0"
+VERSION="2.1"
 
 # Default Values
 WEBUI_ADDRESS="10.11.99.1:80"
@@ -39,6 +39,18 @@ function usage {
   echo -e "-o\t\t\tOutput file or directory"
   echo -e "-r\t\t\tPull remotely via ssh tunneling"
   echo -e "-p\t\t\tIf -r has been given, this option defines port to which the webui will be tunneled (default 9000)"
+}
+
+# Kills SSH session and exits return 0
+function exit_success {
+  ssh -S remarkable-ssh -O exit root@"$SSH_ADDRESS"
+  exit 0
+}
+
+# Kills SSH session and exits with return 1
+function exit_failed {
+  ssh -S remarkable-ssh -O exit root@"$SSH_ADDRESS"
+  exit 1
 }
 
 # Grep remote fs (grep on reMarkable)
@@ -63,8 +75,7 @@ function download {
 
   if [ "$?" -ne 0 ]; then
     echo "repull: Download failed"
-    ssh -S remarkable-ssh -O exit root@"$SSH_ADDRESS"
-    exit -1
+    exit_failed
   fi
 
   file_name="$(echo "$wget_out" | grep --color -oP '(?<=Saving to\: ‘).*(?=’)')"
@@ -140,8 +151,7 @@ function download_dir {
     mkdir "$4/$safe_visible_name"
     if [ $? -ne 0 ]; then
       echo "repull: Failed to create directory: $4/$safe_visible_name"
-      ssh -S remarkable-ssh -O exit root@"$SSH_ADDRESS"
-      exit -1
+      exit_failed
     fi
 
     download_dir "$1" "$2/$safe_visible_name" "$(basename "$metadata_path" .metadata)" "$4/$safe_visible_name"
@@ -248,12 +258,12 @@ while getopts ":vhdo:r:p:" opt; do
 
     v) # Version
       echo "repull version: $VERSION"
-      exit 1
+      exit_success
       ;;
 
     h) # Usage help
       usage
-      exit 1
+      exit_success
       ;;
 
     o) # Output path
@@ -276,7 +286,7 @@ while getopts ":vhdo:r:p:" opt; do
     ?) # Unkown Option
       echo "repull: Invalid option or missing arguments: -$OPTARG"
       usage
-      exit -1
+      exit 1
       ;;
 
   esac
@@ -293,19 +303,19 @@ if [ -z "$1" ];  then
   fi
 
   usage
-  exit -1
+  exit 1
 fi
 
 if [[ -n "$OUTPUT" && $# -gt 1 ]] && [ ! -d "$OUTPUT" ]; then
   echo "repull: Output path '$OUTPUT' is not a directory"
-  exit -1
+  exit 1
 fi
 
 # Establish remote connection
 if [ "$REMOTE" ]; then
   if nc -z localhost "$PORT" > /dev/null; then
     echo "repull: Port $PORT is already used by a different process!"
-    exit -1
+    exit 1
   fi
 
   ssh -o ConnectTimeout=5 -M -S remarkable-ssh -q -f -L "$PORT":"$WEBUI_ADDRESS" root@"$SSH_ADDRESS" -N;
@@ -316,7 +326,7 @@ fi
 
 if [ "$?" -ne 0 ]; then
   echo "repull: Failed to establish connection with the device!"
-  exit -1
+  exit 1
 fi
 
 # Find and pull documents
@@ -337,8 +347,7 @@ for path in "$@"; do
       echo "repull: Unable to find document: $path"
     fi
 
-    ssh -S remarkable-ssh -O exit root@"$SSH_ADDRESS"
-    exit -1
+    exit_failed
 
   # Multiple entries match
   elif [ "${#RET_FOUND[@]}" -gt 1 ]; then
@@ -400,7 +409,7 @@ for path in "$@"; do
 
     if [ $? -ne 0 ]; then
       echo "repull: Failed to create local directory: $local_dir"
-      exit -1
+      exit_failed
     fi
 
     download_dir "$WEBUI_ADDRESS" "$(echo /${path%/} | tr -s '/')" "$OUTPUT_UUID" "$local_dir"
