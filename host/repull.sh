@@ -22,7 +22,7 @@
 # Dependencies  : wget, ssh, nc, date, grep
 
 # Current version (MAJOR.MINOR)
-VERSION="2.2"
+VERSION="2.3"
 
 # Default Values
 WEBUI_ADDRESS="10.11.99.1:80"
@@ -120,7 +120,7 @@ function download_dir {
     fi
 
     if echo "$metadata" | grep -qF '"type": "DocumentType"'; then
-      visible_name="$(ssh -S remarkable-ssh root@"$SSH_ADDRESS" "cat $metadata_path" | grep -oP "(?<=\"visibleName\"\: \").*(?=\"\$)")"
+      visible_name="$(echo "$metadata" | grep -oP '(?<="visibleName": ").*(?="$)')"
       echo "repull: Pulling '$2/$visible_name'"
 
       uuid="$(basename "$metadata_path" .metadata)"
