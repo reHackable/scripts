@@ -22,7 +22,7 @@
 # Dependencies  : wget, ssh, nc, date, grep
 
 # Current version (MAJOR.MINOR)
-VERSION="2.3"
+VERSION="2.4"
 
 # Default Values
 WEBUI_ADDRESS="10.11.99.1:80"
@@ -313,12 +313,15 @@ if [ "$REMOTE" ]; then
   fi
 
   ssh -o ConnectTimeout=5 -M -S remarkable-ssh -q -f -L "$PORT":"$WEBUI_ADDRESS" root@"$SSH_ADDRESS" -N;
+  SSH_RET="$?"
+
   WEBUI_ADDRESS="localhost:$PORT"
 else
   ssh -o ConnectTimeout=1 -M -S remarkable-ssh -q -f root@"$SSH_ADDRESS" -N
+  SSH_RET="$?"
 fi
 
-if [ "$?" -ne 0 ]; then
+if [ "$SSH_RET" -ne 0 ]; then
   echo "repull: Failed to establish connection with the device!"
   exit 1
 fi

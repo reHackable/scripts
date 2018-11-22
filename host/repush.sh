@@ -24,7 +24,7 @@
 # Usage         : https://github.com/reHackable/scripts/wiki/repush.sh
 
 # Current version (MAJOR.MINOR)
-VERSION="2.1"
+VERSION="2.2"
 
 # Local
 SSH_ADDRESS="10.11.99.1"
@@ -264,12 +264,15 @@ if [ "$REMOTE" ]; then
   fi
 
   ssh -o ConnectTimeout=5 -M -S remarkable-ssh -q -f -L "$PORT":"$WEBUI_ADDRESS" root@"$SSH_ADDRESS" -N;
+  SSH_RET="$?"
+
   WEBUI_ADDRESS="localhost:$PORT"
 else
   ssh -o ConnectTimeout=1 -M -S remarkable-ssh -q -f root@"$SSH_ADDRESS" -N
+  SSH_RET="$?"
 fi
 
-if [ "$?" -ne 0 ]; then
+if [ "$SSH_RET" -ne 0 ]; then
   echo "repush: Failed to establish connection with the device!"
   exit -1
 fi
