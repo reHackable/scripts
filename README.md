@@ -14,6 +14,7 @@ Host scripts are meant to be executed on the host device and will frequently req
 - [repull.sh](https://github.com/reHackable/scripts/wiki/repull.sh)
 - [retext.sh](https://github.com/reHackable/scripts/wiki/retext.sh)
 - [reclean.sh](https://github.com/reHackable/scripts/wiki/reclean.sh)
+- [resnap.sh](https://github.com/reHackable/scripts/wiki/resnap.sh)
 
 ## Client
 All scripts that fall under this category are client-sided scripts. In other words, these scripts
