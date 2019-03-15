@@ -254,6 +254,9 @@ for f in "$@"; do
   elif [[ -z "$(echo "$f" | grep -oP "\.pdf$")" && -z "$(echo "$f" | grep -oP "\.epub$")" ]]; then
     echo "repush: File extension invalid or missing: $f"
     exit -1
+  elif [[ ! -z "$(echo "$f" | grep -o '"')" ]]; then
+    echo "repush: Filename must not contain double quotes: $f"
+    exit -1
   fi
 done
 
