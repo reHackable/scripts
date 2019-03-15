@@ -53,7 +53,7 @@ function usage {
 
 # $RET_MATCH - Match(es)
 function rmtgrep {
-  escaped_regex="$(echo "$2" | sed -e 's/"/\\"/g')"
+  escaped_regex="${2//\"/\\\"}"
   RET_MATCH="$(ssh -S remarkable-ssh root@"$SSH_ADDRESS" "grep -$1 \"$escaped_regex\" $3")"
 }
 
@@ -90,10 +90,10 @@ function find_directory {
       continue
     fi
 
-    if [[ "$(expr $3 + 1)" -eq "${#_PATH[@]}" ]]; then
+    if [[ "$(($3 + 1))" -eq "${#_PATH[@]}" ]]; then
       RET_FOUND+=("$(basename "$metadata_path" .metadata)")
     else
-      find_directory "$(basename "$metadata_path" .metadata)" "$2" "$(expr $3 + 1)"
+      find_directory "$(basename "$metadata_path" .metadata)" "$2" "$(( $3 + 1 ))"
     fi
 
   done
@@ -135,7 +135,7 @@ function push {
 
   file_cmd_output="$(file -F '|' "$1")"
 
-  if [ ! -z "$(echo "$file_cmd_output" | grep -o "| PDF")" ]; then
+  if echo "$file_cmd_output" | grep -q "| PDF"; then
     extension="pdf"
   else
     extension="epub"
@@ -247,14 +247,14 @@ for f in "$@"; do
   if [ ! -f "$f" ]; then
     echo "repush: No such file: $f"
     exit -1
-  elif [[ -z "$(echo "$file_cmd_output" | grep -o "| PDF")" && -z "$(echo "$file_cmd_output" | grep -o "| EPUB")" ]]; then
+  elif ! echo "$file_cmd_output" | grep -q "| PDF" && ! echo "$file_cmd_output" | grep -q "| EPUB"; then
     echo "repush: Unsupported file format: $f"
     echo "repush: Only PDFs and EPUBs are supported"
     exit -1
-  elif [[ -z "$(echo "$f" | grep -oP "\.pdf$")" && -z "$(echo "$f" | grep -oP "\.epub$")" ]]; then
+  elif ! echo "$f" | grep -qP "\.pdf$" && ! echo "$f" | grep -qP "\.epub$" ; then
     echo "repush: File extension invalid or missing: $f"
     exit -1
-  elif [[ ! -z "$(echo "$f" | grep -o '"')" ]]; then
+  elif echo "$f" | grep -q '"'; then
     echo "repush: Filename must not contain double quotes: $f"
     exit -1
   fi
@@ -330,13 +330,14 @@ if [ "$OUTPUT" ]; then
 
       # Display file id's from most recently modified to oldest
       for (( i=0; i<${#uuid[@]}; i++ )); do
-        echo -e "$(expr $i + 1). ${uuid[$i]} - Last modified $(date -d @$(expr ${lastModified[$i]} / 1000) '+%Y-%m-%d %H:%M:%S')"
+        echo -e "$(( i + 1 )). ${uuid[$i]} - Last modified $(date -d @$(( ${lastModified[$i]} / 1000 )) '+%Y-%m-%d %H:%M:%S')"
       done
 
+      echo
       read -rp "Select your target directory: " INPUT
       echo
 
-      if [[ "$INPUT" -gt 0  && "$INPUT" -lt $(expr $i + 1) ]]; then
+      if [[ "$INPUT" -gt 0  && "$INPUT" -lt $(( i + 1 )) ]]; then
         OUTPUT_UUID="${uuid[(($INPUT-1))]}"
         break
       fi
