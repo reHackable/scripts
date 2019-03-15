@@ -53,7 +53,8 @@ function usage {
 
 # $RET_MATCH - Match(es)
 function rmtgrep {
-  RET_MATCH="$(ssh -S remarkable-ssh root@"$SSH_ADDRESS" "grep -$1 '$2' $3")"
+  escaped_regex="$(echo "$2" | sed -e 's/"/\\"/g')"
+  RET_MATCH="$(ssh -S remarkable-ssh root@"$SSH_ADDRESS" "grep -$1 \"$escaped_regex\" $3")"
 }
 
 # Recursively Search for a Directory
@@ -98,7 +99,7 @@ function find_directory {
   done
 }
 
-# Obtain the UUID for a file localted in the root directory
+# Obtain the UUID for a file located in the root directory
 
 # $1 - Visible Name
 
