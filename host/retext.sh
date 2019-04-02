@@ -56,7 +56,7 @@ INIT_CONTENT='{
 }'
 
 function usage {
-  echo "Usage: repull.sh [-h] [-r ssh_address] path_to_epub1 [path_to_epub2 ...]"
+  echo "Usage: retext.sh [-h] [-r ssh_address] path_to_epub1 [path_to_epub2 ...]"
   echo ""
   echo "Options:"
   echo -e "-v\t\tDisplay version and exit"
