@@ -16,7 +16,7 @@
 #
 # Description   : Host sided script for screenshotting the current reMarkable display
 #
-# Dependencies  : ffmpeg, ssh
+# Dependencies  : FFmpeg, ssh
 #
 # Thanks to https://github.com/canselcik/libremarkable/wiki/Framebuffer-Overview
 
@@ -78,7 +78,7 @@ done
 hash ffmpeg > /dev/null
 if [ $? -eq 1 ]
 then
-    echo "resnap: Error: Command 'ffmpeg' not found. FFMPEG not installed"
+    echo "resnap: Error: Command 'ffmpeg' not found. FFmpeg not installed"
     exit 1
 fi
 
