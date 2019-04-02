@@ -30,7 +30,7 @@ function usage {
   echo "Arguments:"
   echo -e "output_jpg\tFile to save screenshot to (default resnap.jpg)"
   echo -e "-v --version\tDisplay version and exit"
-  echo -e "-i\tpath to ssh pubkey"
+  echo -e "-i\t\tpath to ssh pubkey"
   echo -e "-r\t\tAddress of reMarkable (default 10.11.99.1)"
   echo -e "-h --help\tDisplay usage and exit"
   echo
