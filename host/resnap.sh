@@ -12,24 +12,23 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
-# Author        : Evan Widloski <evan@evanw.org>,
+# Author        : Evan Widloski <evan@evanw.org>, Patrick Pedersen <ctx.xda@gmail.com>
 #
 # Description   : Host sided script for screenshotting the current reMarkable display
 #
-# Dependencies  : pv, ssh, convert (imagemagick)
+# Dependencies  : ffmpeg, ssh
 #
 # Thanks to https://github.com/canselcik/libremarkable/wiki/Framebuffer-Overview
-
 
 # Current version (MAJOR.MINOR)
 VERSION="1.0"
 
 # Usage
 function usage {
-  echo "Usage: resnap.sh [-h | --help] [-v | --version] [-r ssh_address] [output_png]"
+  echo "Usage: resnap.sh [-h | --help] [-v | --version] [-r ssh_address] [output_jpg]"
   echo
   echo "Arguments:"
-  echo -e "output_png\tFile to save screenshot to (default resnap.png)"
+  echo -e "output_jpg\tFile to save screenshot to (default resnap.jpg)"
   echo -e "-v --version\tDisplay version and exit"
   echo -e "-i\tpath to ssh pubkey"
   echo -e "-r\t\tAddress of reMarkable (default 10.11.99.1)"
@@ -39,8 +38,9 @@ function usage {
 
 # default ssh address
 ADDRESS=10.11.99.1
+
 # default output file
-OUTPUT=resnap.png
+OUTPUT=resnap.jpg
 
 PARAMS=""
 while (( "$#" )); do
@@ -63,7 +63,7 @@ while (( "$#" )); do
       break
       ;;
     -*|--*=) # unsupported flags
-      echo "Error: Unsupported flag $1" >&2
+      echo "resnap: Error: Unsupported flag $1" >&2
       usage
       exit 1
       ;;
@@ -74,30 +74,35 @@ while (( "$#" )); do
   esac
 done
 
-# check if imagemagick installed
-hash convert > /dev/null
+# check if ffmpeg installed
+hash ffmpeg > /dev/null
 if [ $? -eq 1 ]
 then
-    echo "Error: Command 'convert' not found.  imagemagick not installed"
+    echo "resnap: Error: Command 'ffmpeg' not found. FFMPEG not installed"
     exit 1
 fi
 
-# check if imagemagick installed
-hash pv > /dev/null
-if [ $? -eq 1 ]
-then
-    STAT=cat
-else
-    STAT="pv -W -s 10800000"
+# Check if output file already exists
+if [ -f $OUTPUT ]; then
+  extension=$([[ "$OUTPUT" = *.* ]] && echo ".${OUTPUT##*.}" || echo '')
+  filename="${OUTPUT%.*}"
+  index="$(ls "$filename"*"$extension" | grep -P "$filename(-[0-9]*)?$extension" | wc -l)";
+  OUTPUT="$filename-$index$extension"
 fi
 
 # grab framebuffer from reMarkable
-ssh root@$ADDRESS $SSH_OPT "cat /dev/fb0" | $STAT | \
-    convert -depth 16 -size 1408x1872+0 gray:- png:/tmp/resnap.png
+ssh root@$ADDRESS $SSH_OPT "cat /dev/fb0" | \
+  ffmpeg -vcodec rawvideo \
+       -loglevel panic \
+       -f rawvideo \
+       -pix_fmt gray16le \
+       -s 1408,1872 \
+       -i - \
+       -vframes 1 \
+       -f image2 \
+       -vcodec mjpeg $OUTPUT
 
-# convert generates 3 images for some reason, copy the first to the destination
-if [ -f /tmp/resnap-0.png ]
-then
-    cp /tmp/resnap-0.png "$OUTPUT"
-    rm /tmp/resnap-*.png
+if [ ! -f "$OUTPUT" ]; then
+  echo "resnap: Error: Failed to capture screenshot"
+  exit 1
 fi
