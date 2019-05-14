@@ -9,12 +9,12 @@ For more information, please [refer to the repo wiki](https://github.com/reHacka
 ## Host
 Host scripts are meant to be executed on the host device and will frequently require a connection the device either locally via USB, or wirelessly via SSH.
 
-- [rezone.sh](https://github.com/reHackable/scripts/wiki/rezone.sh)
-- [repush.sh](https://github.com/reHackable/scripts/wiki/repush.sh)
-- [repull.sh](https://github.com/reHackable/scripts/wiki/repull.sh)
-- [retext.sh](https://github.com/reHackable/scripts/wiki/retext.sh)
-- [reclean.sh](https://github.com/reHackable/scripts/wiki/reclean.sh)
-- [resnap.sh](https://github.com/reHackable/scripts/wiki/resnap.sh)
+- [rezone.sh](https://github.com/reHackable/scripts/wiki/rezone.sh) - Change/Update the timezone on the reMarkable
+- [repush.sh](https://github.com/reHackable/scripts/wiki/repush.sh) - Transfer documents to the remarkable from the bash command line
+- [repull.sh](https://github.com/reHackable/scripts/wiki/repull.sh) - Download documents and directories from the reMarkable
+- [retext.sh](https://github.com/reHackable/scripts/wiki/retext.sh) - Revert EPUBs to their initial state
+- [reclean.sh](https://github.com/reHackable/scripts/wiki/reclean.sh) - Remove unwanted junk on your reMarkable
+- [resnap.sh](https://github.com/reHackable/scripts/wiki/resnap.sh) - Take a snapshot of the current display on the reMarkable
 
 ## Client
 All scripts that fall under this category are client-sided scripts. In other words, these scripts
