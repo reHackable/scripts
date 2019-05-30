@@ -15,6 +15,7 @@ Host scripts are meant to be executed on the host device and will frequently req
 - [retext.sh](https://github.com/reHackable/scripts/wiki/retext.sh) - Revert EPUBs to their initial state
 - [reclean.sh](https://github.com/reHackable/scripts/wiki/reclean.sh) - Remove unwanted junk on your reMarkable
 - [resnap.sh](https://github.com/reHackable/scripts/wiki/resnap.sh) - Take a snapshot of the current display on the reMarkable
+- [webui_invincibility.sh](https://github.com/reHackable/scripts/wiki/webui_invincibility.sh) - Prevent the WebUI from disabling at boot
 
 ## Client
 All scripts that fall under this category are client-sided scripts. In other words, these scripts
