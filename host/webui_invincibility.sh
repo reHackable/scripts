@@ -18,22 +18,21 @@
 
 # Description   : Pulls and patches the xochitl binary to prevent the WebUI from disabling on boot.
 
-#                 NOTE: DO NOT ATTEMPT TO USE THIS SCRIPT ON A XOCHITL BINARY NO OTHER THAN FOR
+#                 NOTE: DO NOT ATTEMPT TO USE THIS SCRIPT ON A XOCHITL BINARY OTHER THAN FOR
 #                       SOFTWARE VERSION 1.7.1.3!
 
-#                 NOTE: THIS SCRIPT PATCHES THE XOCHITL BINARY TO BLOCK THE DEVICE FROM DISABLING
-#                       THE WEB UI. UNFORTUANTELY, THIS PATCH ALSO FREEZES THE WEBUI SWITCH IN THE
-#                       DEVICE SETTINGS ONCE THE WEBUI HAS BEEN TURNED ON. THE ONLY WAY TO DISABLE
-#                       THE WEBUI AGAIN IS TO CHANGE "WebInterfaceEnabled" TO "false" IN
-#                       "/.config/remarkable/xochitl.conf" AND THEN RESTART THE DEVICE (OR THE
-#                       XOCHITL SERVICE)
+#                 NOTE: This script patches the xochitl binary to prevent the device from disabling
+#                       the Web UI. Unfortuantely, this patch also blocks the WebUI settings switch
+#                       after it has been turned on. The only way to disable the Web UI again is to
+#                       change "WebInterfaceEnabled" to "false" in "/.config/remarkable/xochitl.conf"
+#                       and then restart the device (or the xochitl service)
 
 # Dependencies  : ssh, bspatch
 
 # Technical description:
 
-#                 This script patches a function in the xochitl binary located at offset 0x001bde90, which
-#                 from my limited understanding sets the WebUI state, as well as the WebUI settings switch
+#                 The following script patches a function in the xochitl binary located at offset 0x001bde90,
+#                 which from my limited understanding sets the WebUI state, as well as the WebUI settings switch
 #                 and the WebInterfaceEnabled property in /.config/remarkable/xochitl.conf. The function
 #                 seems to take a single boolean parameter which dictates the state of the WebUI.  For the
 #                 sake of convenience, lets define this function as setWebUI(bool state). The pseudo code for
@@ -67,8 +66,8 @@
 #                 return ...
 #               }
 
-#               Please note that this pseudocode in no way must reflect the actual code, and may very
-#               likely even be wrong given my limited experience in ARM assembly. Nontheless, the only
+#               Please note that this pseudocode in no way represent the actual code, and may likely
+#               even be wrong given my limited experience in ARM assembly. Nontheless, the only
 #               relevant part to this patch is the guard condition at the start of the function,
 #               (getWebInterfaceEnabledProperty() == state), which checks whether the web interface
 #               has already been set to the targeted state by comparing it to the value of the
