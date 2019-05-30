@@ -66,7 +66,7 @@
 #                 return ...
 #               }
 
-#               Please note that this pseudocode in no way represent the actual code, and may likely
+#               Please note that this pseudocode in no way must represent the actual code, and may likely
 #               even be wrong given my limited experience in ARM assembly. Nontheless, the only
 #               relevant part to this patch is the guard condition at the start of the function,
 #               (getWebInterfaceEnabledProperty() == state), which checks whether the web interface
