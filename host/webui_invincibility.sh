@@ -78,7 +78,7 @@
 #               been set to true, and thus never gets to turn the WebUI off again.
 
 # Current version (MAJOR.MINOR)
-VERSION="1.0"
+VERSION="1.1"
 
 XOCHITL_MD5="4d83f15f497708ed5e0c67e8a6380926"
 XOCHITL_PATCHED_MD5="b3fec60bc56c9410bfe440bf4d332eac"
@@ -116,6 +116,7 @@ EOF
   fi
 
   bspatch "$1" "$2" "/tmp/webui_invincibility.patch"
+  rm "/tmp/webui_invincibility.patch"
 
   md5=($(md5sum "$2"))
 
@@ -160,7 +161,7 @@ while getopts ":vhdu:r:" opt; do
       REMOTE=1
       ;;
 
-    ?) # Unkown Option
+    ?) # Unknown Option
       echo "webui_invincibility: Invalid option or missing arguments: -$OPTARG"
       usage
       exit 1
@@ -278,9 +279,11 @@ echo "webui_invincibility: Applying patches... DO NOT DISCONNECT OR LOCK YOUR DE
 
 ssh -S remarkable-ssh root@"$SSH_ADDRESS" "systemctl stop xochitl"
 scp "/tmp/xochitl_patched" root@"$SSH_ADDRESS":"/usr/bin/xochitl"
+rm "/tmp/xochitl_patched"
 
 if [[ $? != 0 ]]; then
   echo "webui_invincibility: Failed to apply xochitl patches! Please try again!"
+  exit 1
 fi
 
 md5=($(ssh -S remarkable-ssh root@"$SSH_ADDRESS" "md5sum /usr/bin/xochitl"))
