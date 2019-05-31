@@ -78,7 +78,7 @@
 #               been set to true, and thus never gets to turn the WebUI off again.
 
 # Current version (MAJOR.MINOR)
-VERSION="1.2"
+VERSION="1.3"
 
 XOCHITL_MD5="4d83f15f497708ed5e0c67e8a6380926"
 XOCHITL_PATCHED_MD5="b3fec60bc56c9410bfe440bf4d332eac"
@@ -194,17 +194,20 @@ if [ "$REMOTE" ]; then
   fi
 fi
 
-echo
-echo "=========================================================================="
-echo "                              DISCLAIMER 1                                "
-echo ""
-echo 'THIS SCRIPT PATCHES THE XOCHITL BINARY TO BLOCK THE DEVICE FROM DISABLING '
-echo 'THE WEB UI. UNFORTUANTELY, THIS PATCH ALSO FREEZES THE WEBUI SWITCH IN THE'
-echo 'DEVICE SETTINGS ONCE THE WEBUI HAS BEEN TURNED ON. THE ONLY WAY TO DISABLE'
-echo 'THE WEBUI AGAIN IS TO CHANGE "WebInterfaceEnabled" TO "false" IN'
-echo '"/.config/remarkable/xochitl.conf" AND THEN RESTART THE DEVICE (OR THE XO-'
-echo 'CHITL SERVICE)'
-echo "=========================================================================="
+if [ -z "$UNDO" ]; then
+  echo
+  echo "=========================================================================="
+  echo "                              DISCLAIMER 1                                "
+  echo ""
+  echo 'THIS SCRIPT PATCHES THE XOCHITL BINARY TO BLOCK THE DEVICE FROM DISABLING '
+  echo 'THE WEB UI. UNFORTUANTELY, THIS PATCH ALSO FREEZES THE WEBUI SWITCH IN THE'
+  echo 'DEVICE SETTINGS ONCE THE WEBUI HAS BEEN TURNED ON. THE ONLY WAY TO DISABLE'
+  echo 'THE WEBUI AGAIN IS TO CHANGE "WebInterfaceEnabled" TO "false" IN'
+  echo '"/.config/remarkable/xochitl.conf" AND THEN RESTART THE DEVICE (OR THE XO-'
+  echo 'CHITL SERVICE)'
+  echo "=========================================================================="
+fi
+
 echo
 echo "=========================================================================="
 echo "                              DISCLAIMER 2                                "
