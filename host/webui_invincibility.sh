@@ -78,7 +78,7 @@
 #               been set to true, and thus never gets to turn the WebUI off again.
 
 # Current version (MAJOR.MINOR)
-VERSION="1.1"
+VERSION="1.2"
 
 XOCHITL_MD5="4d83f15f497708ed5e0c67e8a6380926"
 XOCHITL_PATCHED_MD5="b3fec60bc56c9410bfe440bf4d332eac"
@@ -186,23 +186,12 @@ fi
 
 # Establish remote connection
 if [ "$REMOTE" ]; then
-  if nc -z localhost "$PORT" > /dev/null; then
-    echo "repush: Port $PORT is already used by a different process!"
-    exit 1
+  ssh -q root@"$SSH_ADDRESS" exit
+
+  if [ "$?" -ne 0 ]; then
+    echo "webui_invincibility: Failed to establish connection!"
+    exit -1
   fi
-
-  ssh -o ConnectTimeout=5 -M -S remarkable-ssh -q -f -L "$PORT":"$WEBUI_ADDRESS" root@"$SSH_ADDRESS" -N;
-  SSH_RET="$?"
-
-  WEBUI_ADDRESS="localhost:$PORT"
-else
-  ssh -o ConnectTimeout=1 -M -S remarkable-ssh -q -f root@"$SSH_ADDRESS" -N
-  SSH_RET="$?"
-fi
-
-if [[ "$SSH_RET" != 0 ]]; then
-  echo "repush: Failed to establish connection with the device!"
-  exit 1
 fi
 
 echo
@@ -229,21 +218,21 @@ echo
 read -p "HIT ENTER TO PROCEED "
 
 if [ "$UNDO" ]; then
-  ssh -S remarkable-ssh root@"$SSH_ADDRESS" "systemctl stop xochitl"
+  ssh root@"$SSH_ADDRESS" "systemctl stop xochitl"
   scp "$xochitl_backup" root@"$SSH_ADDRESS":"/usr/bin/xochitl"
   if [[ $? != 0 ]]; then
     echo "webui_invincibility: Failed to push xochitl backup!"
     exit 1
   fi
 
-  md5=($(ssh -S remarkable-ssh root@"$SSH_ADDRESS" "md5sum /usr/bin/xochitl"))
+  md5=($(ssh root@"$SSH_ADDRESS" "md5sum /usr/bin/xochitl"))
 
   if [[ "$md5" != "$XOCHITL_MD5" ]]; then
     echo "webui_invincibility: MD5 check failed, please try again!"
     exit 1
   fi
 
-  ssh -S remarkable-ssh root@"$SSH_ADDRESS" "systemctl restart xochitl"
+  ssh root@"$SSH_ADDRESS" "systemctl restart xochitl"
   echo "webui_invincibility: Patches Successfully undone!"
   exit 0
 fi
@@ -277,7 +266,7 @@ fi
 echo "webui_invincibility: xochitl patched!"
 echo "webui_invincibility: Applying patches... DO NOT DISCONNECT OR LOCK YOUR DEVICE!"
 
-ssh -S remarkable-ssh root@"$SSH_ADDRESS" "systemctl stop xochitl"
+ssh root@"$SSH_ADDRESS" "systemctl stop xochitl"
 scp "/tmp/xochitl_patched" root@"$SSH_ADDRESS":"/usr/bin/xochitl"
 rm "/tmp/xochitl_patched"
 
@@ -286,12 +275,12 @@ if [[ $? != 0 ]]; then
   exit 1
 fi
 
-md5=($(ssh -S remarkable-ssh root@"$SSH_ADDRESS" "md5sum /usr/bin/xochitl"))
+md5=($(ssh root@"$SSH_ADDRESS" "md5sum /usr/bin/xochitl"))
 
 if [[ "$md5" != "$XOCHITL_PATCHED_MD5" ]]; then
   echo "webui_invincibility: The transfered xochitl binary appears to be corrupted! Please undo the patches (run the patch with -u) and try again!"
   exit 1
 fi
 
-ssh -S remarkable-ssh root@"$SSH_ADDRESS" "systemctl restart xochitl"
+ssh root@"$SSH_ADDRESS" "systemctl restart xochitl"
 echo "webui_invincibility: Successfully patched xochitl!"
