@@ -45,6 +45,9 @@ function usage {
   echo -e "-p\t\t\tIf -r has been given, this option defines the port to which the webui will be tunneled (default 9000)"
 }
 
+## Placeholders ##
+# To understand why we make placeholders, please see: https://github.com/reHackable/scripts/commit/67b15a3dc448a954813f420fa050c9be56ac8550
+
 # Create a blank placeholder PDF
 # Based on: https://github.com/mathiasbynens/small/blob/master/pdf.pdf
 
