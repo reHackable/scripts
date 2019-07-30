@@ -418,7 +418,7 @@ function push {
         fi
 
         # Call push for files inside this directory
-        for item in "$1/*"; do
+        for item in "$1"/*; do
           check_file "$item"
           if [ "$?" -eq 1 ]; then
             push "$item" "$uuid"
