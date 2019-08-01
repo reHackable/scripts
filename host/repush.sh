@@ -337,11 +337,16 @@ function push {
     directory=""
   fi
 
-  # Create placeholder
-  placeholder="/tmp/repush/$(basename "$1")"
-  if [ "$directory" ]; then
-    placeholder="/tmp/repush/$(basename "$1").pdf"
+  placeholder_basename="$(basename "$1")"
+
+  # Since the WebUI doesn't accept directories, we're creating a PDF placeholder
+  # fs entry, who's metadata we'll then alter to that of a directory fs entry
+  if [ $directory ]; then
+    placeholder_basename+=".pdf"
   fi
+
+  # Create placeholder
+  placeholder="/tmp/repush/$placeholder_basename"
 
   if [[ $extension == "pdf" ]]; then
     create_placeholder_pdf "$placeholder"
@@ -349,17 +354,12 @@ function push {
     create_placeholder_epub "$placeholder"
   fi
 
-
   while true; do
     if curl --connect-timeout 2 --silent --output /dev/null --form file=@"\"$placeholder\"" http://"$WEBUI_ADDRESS"/upload; then
 
       # Wait for metadata to be generated
       while true; do
-        if [ -z "$directory" ]; then
-          uuid_of_root_file "$(basename "$1")"
-        else
-          uuid_of_root_file "$(basename "$1").pdf"
-        fi
+        uuid_of_root_file "$placeholder_basename"
         if [ ! -z "$RET_UUID" ]; then
           break
         fi
@@ -372,6 +372,10 @@ function push {
         fi
       done;
 
+      # Delete thumbnails (TODO: Replace thumbnail with pre-rendered thumbnail)
+      ssh -S remarkable-ssh root@"$SSH_ADDRESS" "rm -f /home/root/.local/share/remarkable/xochitl/$RET_UUID.thumbnails/*"
+
+      # File is document
       if [ -z "$directory" ]; then
         # Replace placeholder with document
         retry=""
@@ -387,15 +391,19 @@ function push {
             break
           fi
         done
+
+        # Change parent UUID to $2
+        ssh -S remarkable-ssh root@"$SSH_ADDRESS" "sed -i 's/\"parent\": \"[^\"]*\"/\"parent\": \"$2\"/' /home/root/.local/share/remarkable/xochitl/$RET_UUID.metadata"
+
+      # Moved up in if block to avoid setting ROOT_UUID twice for directories
+      # Only set ROOT_UUID once
+      if [ -z "$ROOT_UUID" ]; then
+        ROOT_UUID="$RET_UUID"
       fi
 
-      # Delete thumbnails (TODO: Replace thumbnail with pre-rendered thumbnail)
-      ssh -S remarkable-ssh root@"$SSH_ADDRESS" "rm -f /home/root/.local/share/remarkable/xochitl/$RET_UUID.thumbnails/*"
-
-
       # Directory handling
-      if [ "$directory" ]; then
-        echo repush: Creating directory $(basename $1).
+      else
+        echo repush: Creating directory "$(basename $1)"
 
         # Change metadata (type, visibleName, parent)
         ssh -S remarkable-ssh root@"$SSH_ADDRESS" "sed -i 's/\"type\": \"DocumentType\"/\"type\": \"CollectionType\"/;\
@@ -425,14 +433,6 @@ function push {
             echo repush: Skipping "$item".
           fi
         done
-      else # file is no directory
-        # Change parent UUID to $2
-        ssh -S remarkable-ssh root@"$SSH_ADDRESS" "sed -i 's/\"parent\": \"[^\"]*\"/\"parent\": \"$2\"/' /home/root/.local/share/remarkable/xochitl/$RET_UUID.metadata"
-      fi
-
-      # Only set ROOT_UUID once
-      if [ -z "$ROOT_UUID" ]; then
-        ROOT_UUID="$RET_UUID"
       fi
 
       ((SUCCESS++))
@@ -441,6 +441,7 @@ function push {
     else # curl failed
       retry=""
       echo "repush: $1: Failed"
+      echo "repush: Is the WebUI enabled in the settings? (See: https://github.com/reHackable/scripts/wiki/repush.sh)"
       read -r -p "Failed to push file! Retry? [Y/n]: " retry
 
       if [[ $retry == "n" || $retry == "N" ]]; then
