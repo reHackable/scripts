@@ -31,7 +31,7 @@ SSH_ADDRESS="10.11.99.1"
 WEBUI_ADDRESS="10.11.99.1:80"
 
 # Remote
-PORT=9000 # Deault port to which the webui is tunneled to
+PORT=9000 # Default port to which the webui is tunneled to
 
 shopt -s nullglob # Needed when globbing empty directories
 
@@ -365,14 +365,12 @@ function push {
         fi
       done;
 
-
       # Wait for placeholder to be transferred
       while true; do
         if ssh -S remarkable-ssh root@"$SSH_ADDRESS" stat "/home/root/.local/share/remarkable/xochitl/$RET_UUID.$extension" \> /dev/null 2\>\&1; then
           break
         fi
       done;
-
 
       if [ -z "$directory" ]; then
         # Replace placeholder with document
@@ -430,6 +428,11 @@ function push {
       else # file is no directory
         # Change parent UUID to $2
         ssh -S remarkable-ssh root@"$SSH_ADDRESS" "sed -i 's/\"parent\": \"[^\"]*\"/\"parent\": \"$2\"/' /home/root/.local/share/remarkable/xochitl/$RET_UUID.metadata"
+      fi
+
+      # Only set ROOT_UUID once
+      if [ -z "$ROOT_UUID" ]; then
+        ROOT_UUID="$RET_UUID"
       fi
 
       ((SUCCESS++))
