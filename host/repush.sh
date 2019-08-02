@@ -24,7 +24,7 @@
 # Usage         : https://github.com/reHackable/scripts/wiki/repush.sh
 
 # Current version (MAJOR.MINOR)
-VERSION="3.0"
+VERSION="4.0"
 
 # Local
 SSH_ADDRESS="10.11.99.1"
