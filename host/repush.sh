@@ -16,7 +16,7 @@
 # Author        :  Patrick Pedersen <ctx.xda@gmail.com>,
 #                  Part of the reHackable organization <https://github.com/reHackable>
 
-# Description   : Host sided script that can push one or more documents to the reMarkable
+# Description   : Host sided script that can push one or more files to the reMarkable
 #                 using the Web client and SSH
 
 # Dependencies  : cURL, ssh, nc
@@ -31,7 +31,9 @@ SSH_ADDRESS="10.11.99.1"
 WEBUI_ADDRESS="10.11.99.1:80"
 
 # Remote
-PORT=9000 # Deault port to which the webui is tunneled to
+PORT=9000 # Default port to which the webui is tunneled to
+
+shopt -s nullglob # Needed when globbing empty directories
 
 function usage {
   echo "Usage: repush.sh [-v] [-h] [-o output] [-d] [-r ip] [-p port] doc1 [doc2 ...]"
@@ -277,24 +279,69 @@ function uuid_of_root_file {
   done
 }
 
-# Push documents to the device
+
+# Check file validity
+
+# $1 - File to check
+
+# $? - 1: file valid | 0: file invalid
+function check_file {
+  file_cmd_output="$(file -F '|' "$1")"
+
+  if echo "$file_cmd_output" | grep -q "| directory"; then
+    local is_directory="true"
+  fi
+
+  if [ ! -e "$1" ]; then
+    echo "repush: No such file or directory: $1"
+    return 0
+  elif [ -z $is_directory ] && ! echo "$file_cmd_output" | grep -q "| PDF" && ! echo "$file_cmd_output" | grep -q "| EPUB"; then
+    echo "repush: Unsupported file format: $1"
+    echo "repush: Only PDFs and EPUBs are supported"
+    return 0
+  elif [ -z $is_directory ] && ! echo "$1" | grep -qP "\.pdf$" && ! echo "$1" | grep -qP "\.epub$" ; then
+    echo "repush: File extension invalid or missing: $1"
+    return 0
+  elif echo "$1" | grep -q '"'; then
+    echo "repush: Filename must not contain double quotes: $1"
+    return 0
+  fi
+
+  return 1
+};
+
+# Push files to the device
 
 # $1 - Path to document (Must be EPUB or PDF)
+# $2 - UUID of parent directory (empty for root)
 
 # $RET_UUID - The fs UUID of the document
 # $? - 1: transfer succeeded | 0: transfer failed
 function push {
 
+  ((TOTAL++))
   file_cmd_output="$(file -F '|' "$1")"
 
-  if echo "$file_cmd_output" | grep -q "| PDF"; then
+  # If file is directory, set extension to PDF for placeholder file
+  if echo "$file_cmd_output" | grep -q "| \(PDF\|directory\)"; then
     extension="pdf"
   else
     extension="epub"
   fi
 
+  # If file is directory, set directory to true, so we can distinguish between PDFs and directories
+  if echo "$file_cmd_output" | grep -q "| directory"; then
+    directory="true"
+    DIR_IN_ARG="true"
+  else
+    directory=""
+  fi
+
   # Create placeholder
   placeholder="/tmp/repush/$(basename "$1")"
+  if [ "$directory" ]; then
+    placeholder="/tmp/repush/$(basename "$1").pdf"
+  fi
 
   if [[ $extension == "pdf" ]]; then
     create_placeholder_pdf "$placeholder"
@@ -302,12 +349,17 @@ function push {
     create_placeholder_epub "$placeholder"
   fi
 
+
   while true; do
     if curl --connect-timeout 2 --silent --output /dev/null --form file=@"\"$placeholder\"" http://"$WEBUI_ADDRESS"/upload; then
 
       # Wait for metadata to be generated
       while true; do
-        uuid_of_root_file "$(basename "$1")"
+        if [ -z "$directory" ]; then
+          uuid_of_root_file "$(basename "$1")"
+        else
+          uuid_of_root_file "$(basename "$1").pdf"
+        fi
         if [ ! -z "$RET_UUID" ]; then
           break
         fi
@@ -320,27 +372,73 @@ function push {
         fi
       done;
 
-      # Replace placeholder with document
-      retry=""
-      while true; do
-        scp "$1" root@"$SSH_ADDRESS":"/home/root/.local/share/remarkable/xochitl/$RET_UUID.$extension"
+      if [ -z "$directory" ]; then
+        # Replace placeholder with document
+        retry=""
+        while true; do
+          scp "$1" root@"$SSH_ADDRESS":"/home/root/.local/share/remarkable/xochitl/$RET_UUID.$extension"
 
-        if [ $? -ne 0 ]; then
-          read -r -p "Failed to replace placeholder! Retry? [Y/n]: " retry
-          if [[ $retry == "n" || $retry == "N" ]]; then
-            return 0
+          if [ $? -ne 0 ]; then
+            read -r -p "Failed to replace placeholder! Retry? [Y/n]: " retry
+            if [[ $retry == "n" || $retry == "N" ]]; then
+              return 0
+            fi
+          else
+            break
           fi
-        else
-          break
-        fi
-      done
+        done
+      fi
 
       # Delete thumbnails (TODO: Replace thumbnail with pre-rendered thumbnail)
       ssh -S remarkable-ssh root@"$SSH_ADDRESS" "rm -f /home/root/.local/share/remarkable/xochitl/$RET_UUID.thumbnails/*"
 
+
+      # Directory handling
+      if [ "$directory" ]; then
+        echo repush: Creating directory $(basename $1).
+
+        # Change metadata (type, visibleName, parent)
+        ssh -S remarkable-ssh root@"$SSH_ADDRESS" "sed -i 's/\"type\": \"DocumentType\"/\"type\": \"CollectionType\"/;\
+        s/\"visibleName\": \"[^\"]*\"/\"visibleName\": \"$(basename $1)\"/;\
+        s/\"parent\": \"\"/\"parent\": \"$2\"/' /home/root/.local/share/remarkable/xochitl/$RET_UUID.metadata"
+
+        # Delete files not needed for directories
+        ssh -S remarkable-ssh root@"$SSH_ADDRESS" "rm -r /home/root/.local/share/remarkable/xochitl/$RET_UUID{,.cache,.highlights,.pagedata,.pdf,.textconversion,.content}"
+
+        # re-populate *.content
+        ssh -S remarkable-ssh root@"$SSH_ADDRESS" "echo "{}" > /home/root/.local/share/remarkable/xochitl/$RET_UUID.content"
+
+        local uuid="$RET_UUID" # local to avoid being overwritten by recursive calls
+
+        # Only set ROOT_UUID once
+        if [ -z "$ROOT_UUID" ]; then
+          ROOT_UUID="$RET_UUID"
+        fi
+
+        # Call push for files inside this directory
+        for item in "$1"/*; do
+          check_file "$item"
+          if [ "$?" -eq 1 ]; then
+            push "$item" "$uuid"
+          else
+            # Skipping instead of aborting, because we already could have pushed files
+            echo repush: Skipping "$item".
+          fi
+        done
+      else # file is no directory
+        # Change parent UUID to $2
+        ssh -S remarkable-ssh root@"$SSH_ADDRESS" "sed -i 's/\"parent\": \"[^\"]*\"/\"parent\": \"$2\"/' /home/root/.local/share/remarkable/xochitl/$RET_UUID.metadata"
+      fi
+
+      # Only set ROOT_UUID once
+      if [ -z "$ROOT_UUID" ]; then
+        ROOT_UUID="$RET_UUID"
+      fi
+
+      ((SUCCESS++))
       return 1
 
-    else
+    else # curl failed
       retry=""
       echo "repush: $1: Failed"
       read -r -p "Failed to push file! Retry? [Y/n]: " retry
@@ -393,26 +491,14 @@ shift $((OPTIND-1))
 
 # Check for minimum argument count
 if [ -z "$1" ];  then
-  echo "repush: No documents provided"
+  echo "repush: No files provided"
   usage
   exit -1
 fi
 
-# Check file validity
 for f in "$@"; do
-  file_cmd_output="$(file -F '|' "$f")"
-  if [ ! -f "$f" ]; then
-    echo "repush: No such file: $f"
-    exit -1
-  elif ! echo "$file_cmd_output" | grep -q "| PDF" && ! echo "$file_cmd_output" | grep -q "| EPUB"; then
-    echo "repush: Unsupported file format: $f"
-    echo "repush: Only PDFs and EPUBs are supported"
-    exit -1
-  elif ! echo "$f" | grep -qP "\.pdf$" && ! echo "$f" | grep -qP "\.epub$" ; then
-    echo "repush: File extension invalid or missing: $f"
-    exit -1
-  elif echo "$f" | grep -q '"'; then
-    echo "repush: Filename must not contain double quotes: $f"
+  check_file $f
+  if [ "$?" -eq 0 ]; then
     exit -1
   fi
 done
@@ -516,32 +602,33 @@ if [ "$OUTPUT" ]; then
   fi
 fi
 
-# Push documents
-success=0
+# Push files
+TOTAL=0 # num of files (excluding files rejected by check_file)
+SUCCESS=0 # num of successful pushed files
 for f in "$@"; do
+  ROOT_UUID=""
   push "$f"
 
   if [ $? == 1 ]; then
     if [ "$OUTPUT" ]; then
       # Move file to output directory
-      ssh -S remarkable-ssh root@"$SSH_ADDRESS" "sed -i 's/\"parent\": \"[^\"]*\"/\"parent\": \"$OUTPUT_UUID\"/' /home/root/.local/share/remarkable/xochitl/$RET_UUID.metadata"
+      ssh -S remarkable-ssh root@"$SSH_ADDRESS" "sed -i 's/\"parent\": \"[^\"]*\"/\"parent\": \"$OUTPUT_UUID\"/' /home/root/.local/share/remarkable/xochitl/$ROOT_UUID.metadata"
     fi
 
-    # Dete flag (-d) provided
+    # Delete flag (-d) provided
     if [ "$DELETE_ON_PUSH" ]; then
       rm "$f"
       if [ $? -ne 0 ]; then
         echo "repush: Failed to remove $f"
       fi
     fi
-    ((success++))
   else
     echo "repush: $f: Failed"
   fi
 done
 
 # Restart xochitl to apply changes to metadata
-if [ "$OUTPUT" ]; then
+if [[ "$OUTPUT" || "$DIR_IN_ARG" ]]; then
   if [[ -z "$REMOTE" && -z "$RFKILL" ]]; then
     ssh -S remarkable-ssh root@"$SSH_ADDRESS" "/usr/sbin/rfkill unblock 0"
   fi
@@ -552,4 +639,4 @@ fi
 
 rm -rf /tmp/repush
 ssh -S remarkable-ssh -O exit root@"$SSH_ADDRESS"
-echo "repush: Successfully transferred $success out of $# documents"
+echo "repush: Successfully transferred $SUCCESS out of $TOTAL files"
