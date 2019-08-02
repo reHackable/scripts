@@ -35,7 +35,7 @@
 
 # Technical description:
 
-#                 The following script patches a function in the xochitl binary located at offset 0x001bde90,
+#                 The following script patches a function in the xochitl binary located at offset 0x001bf3b8,
 #                 which from my limited understanding sets the WebUI state, as well as the WebUI settings switch
 #                 and the WebInterfaceEnabled property in /.config/remarkable/xochitl.conf. The function
 #                 seems to take a single boolean parameter which dictates the state of the WebUI.  For the
