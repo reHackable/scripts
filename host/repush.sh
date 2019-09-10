@@ -24,7 +24,7 @@
 # Usage         : https://github.com/reHackable/scripts/wiki/repush.sh
 
 # Current version (MAJOR.MINOR)
-VERSION="4.0"
+VERSION="4.1"
 
 # Local
 SSH_ADDRESS="10.11.99.1"
@@ -498,7 +498,7 @@ if [ -z "$1" ];  then
 fi
 
 for f in "$@"; do
-  check_file $f
+  check_file "$f"
   if [ "$?" -eq 0 ]; then
     exit -1
   fi
