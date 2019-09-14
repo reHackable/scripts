@@ -13,7 +13,8 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-# Author        :  Patrick Pedersen <ctx.xda@gmail.com>,
+# Authors       :  Patrick Pedersen <ctx.xda@gmail.com>
+#                  Max Depenbrock <max_d@me.com>
 #                  Part of the reHackable organization <https://github.com/reHackable>
 
 # Description   : Host sided script that can push one or more files to the reMarkable
@@ -48,7 +49,7 @@ function usage {
 }
 
 ## Placeholders ##
-# To understand why we make placeholders, please see: https://github.com/reHackable/scripts/commit/67b15a3dc448a954813f420fa050c9be56ac8550
+# To understand why we make use of placeholders, please see: https://github.com/reHackable/scripts/commit/67b15a3dc448a954813f420fa050c9be56ac8550
 
 # Create a blank placeholder PDF
 # Based on: https://github.com/mathiasbynens/small/blob/master/pdf.pdf
