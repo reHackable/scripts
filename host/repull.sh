@@ -22,7 +22,7 @@
 # Dependencies  : wget, ssh, nc, date, grep
 
 # Current version (MAJOR.MINOR)
-VERSION="2.4"
+VERSION="2.5"
 
 # Default Values
 WEBUI_ADDRESS="10.11.99.1:80"
@@ -60,10 +60,16 @@ function rmtgrep {
 
 # Downloads document trough the webui
 
-# $1 - WebUI address (10.11.99.1)
+# $1 - WebUI address (via USB always 10.11.99.1)
 # $2 - File UUID
 # $3 - Output path
 function download {
+
+  current_dir="$PWD"
+
+  if [ -d "$3" ]; then
+    cd "$3"
+  fi
 
   wget_out="$(wget --content-disposition http://"$1"/download/"$2"/placeholder 2>&1 >/dev/null)"
 
@@ -72,21 +78,10 @@ function download {
     exit_failed
   fi
 
-  file_name="$(echo "$wget_out" | grep --color -oP '(?<=Saving to\: ‘).*(?=’)')"
+  cd "$current_dir"
 
-  if [ -d "$3" ]; then
-    new_file_name=${file_name#"'"}
-    new_file_name=${new_file_name%"'"}
-
-    suffix=1
-    safe_file_name="$new_file_name"
-    while [[ -f "$safe_file_name" || -d "$safe_file_name" ]]; do
-      safe_file_name="$new_file_name ($suffix)"
-      ((suffix++))
-    done
-
-    mv "$file_name" "$3/$safe_file_name"
-  else
+  if [ ! -d "$3" ]; then
+    file_name="$(echo "$wget_out" | grep --color -oP '(?<=Saving to\: ‘).*(?=’)')"
     mv "$file_name" "$3"
   fi
 
