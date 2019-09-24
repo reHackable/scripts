@@ -19,9 +19,10 @@
 # Description   : Pulls and patches the xochitl binary to prevent the WebUI from disabling on boot.
 
 #                 NOTE: DO NOT ATTEMPT TO USE THIS SCRIPT ON A XOCHITL BINARY OTHER THAN FOR
-#                       SOFTWARE VERSION 1.7.2.3!
+#                       SOFTWARE VERSION 1.8.1.1!
 #
 #                       You can find patches for older xochitl versions here:
+#                        - 1.7.2.3: https://github.com/reHackable/scripts/blob/8b963c6f88cd122707e46a21eeffaf46da79c15e/host/webui_invincibility.sh
 #                        - 1.7.0.1: https://gist.github.com/CTXz/4adc40b96465ee64542d14581dae18a4
 #                        - 1.7.1.3: https://github.com/reHackable/scripts/blob/ac71d094b4212df1680124688ec001f212ab2bd6/host/webui_invincibility.sh
 
@@ -82,10 +83,10 @@
 #               been set to true, and thus never gets to turn the WebUI off again.
 
 # Current version (MAJOR.MINOR)
-VERSION="1.4"
+VERSION="1.5"
 
-XOCHITL_MD5="3c0010a7b5cad46e94925c07bb4fd492"
-XOCHITL_PATCHED_MD5="6e92e0fe4e5e600fd8be04f316fd0e01"
+XOCHITL_MD5="224c75b436a519ff974bada4e7053f35"
+XOCHITL_PATCHED_MD5="a0be707dd870cd6b33a513de19c07c09"
 SSH_ADDRESS="10.11.99.1"
 
 function usage {
@@ -100,17 +101,17 @@ function usage {
 
 function patch_xochitl {
 echo "$(cat <<- 'EOF'
-00000000: 4253 4449 4646 3430 3c00 0000 0000 0000  BSDIFF40<.......
-00000010: 3c00 0000 0000 0000 7ceb 4100 0000 0000  <.......|.A.....
-00000020: 425a 6839 3141 5926 5359 9276 c321 0000  BZh91AY&SY.v.!..
-00000030: 0654 d1c0 2001 0020 0000 0440 0000 0400  .T.. .. ...@....
-00000040: 0800 8020 0021 a321 9083 2620 a200 91ae  ... .!.!..& ....
-00000050: 73c5 dc91 4e14 2424 9db0 c840 425a 6839  s...N.$$...@BZh9
-00000060: 3141 5926 5359 6fbf 07ca 001b 0ec0 06d0  1AY&SYo.........
-00000070: 0001 0001 0000 0c20 0050 6001 4a8d 34f4  ....... .P`.J.4.
-00000080: a829 672a 80b3 1521 06f0 a128 5bf1 7724  .)g*...!...([.w$
-00000090: 5385 0906 fbf0 7ca0 425a 6839 1772 4538  S.....|.BZh9.rE8
-000000a0: 5090 0000 0000                           P.....                             ....
+00000000: 4253 4449 4646 3430 3a00 0000 0000 0000  BSDIFF40:.......
+00000010: 3a00 0000 0000 0000 c437 4200 0000 0000  :........7B.....
+00000020: 425a 6839 3141 5926 5359 e208 05e2 0000  BZh91AY&SY......
+00000030: 07dc 4c40 2000 8000 8010 0040 0004 0004  ..L@ ......@....
+00000040: 8020 0021 a346 4d08 3262 0e90 048f 1f4f  . .!.FM.2b.....O
+00000050: 1772 4538 5090 e208 05e2 425a 6839 3141  .rE8P.....BZh91A
+00000060: 5926 5359 2426 1bbb 001a 8a40 20d0 0010  Y&SY$&.....@ ...
+00000070: 0080 0c20 0050 6002 6a93 43b4 9524 ee25  ... .P`.j.C..$.%
+00000080: 126e 9052 abd8 5085 4f7c 5dc9 14e1 4240  .n.R..P.O|]...B@
+00000090: 9098 6eec 425a 6839 1772 4538 5090 0000  ..n.BZh9.rE8P...
+000000a0: 0000                                     ..
 EOF
 )" | xxd -r > "/tmp/webui_invincibility.patch"
 
@@ -183,7 +184,7 @@ if [ "$UNDO" ]; then
 
   if [[ "$backup_md5" != "$XOCHITL_MD5" ]]; then
     echo "webui_invincibility: Backup xochitl binary is incorrect or corrupted"
-    echo "webui_invincibility: You can obtain a xochitl backup for OS ver 1.7.2.3 here: https://drive.google.com/open?id=1nGpQt6Plugkwf9U-Gh7TI_aXmmeVfr_M"
+    echo "webui_invincibility: You can obtain a xochitl backup for OS ver 1.8.1.1 here: https://drive.google.com/open?id=1nGpQt6Plugkwf9U-Gh7TI_aXmmeVfr_M"
     exit 1
   fi
 fi
