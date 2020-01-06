@@ -300,7 +300,7 @@ function check_file {
     echo "repush: Unsupported file format: $1"
     echo "repush: Only PDFs and EPUBs are supported"
     return 0
-  elif [ -z $is_directory ] && ! echo "$1" | grep -qP "\.pdf$" && ! echo "$1" | grep -qP "\.epub$" ; then
+  elif [ -z $is_directory ] && ! echo "$1" | grep -qi "\.pdf$" && ! echo "$1" | grep -qi "\.epub$" ; then
     echo "repush: File extension invalid or missing: $1"
     return 0
   elif echo "$1" | grep -q '"'; then
