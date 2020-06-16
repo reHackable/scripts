@@ -381,7 +381,7 @@ function push {
         # Replace placeholder with document
         retry=""
         while true; do
-          scp "$1" root@"$SSH_ADDRESS":"/home/root/.local/share/remarkable/xochitl/$RET_UUID.$extension"
+          scp "$(realpath "$1")" root@"$SSH_ADDRESS":"/home/root/.local/share/remarkable/xochitl/$RET_UUID.$extension"
 
           if [ $? -ne 0 ]; then
             read -r -p "Failed to replace placeholder! Retry? [Y/n]: " retry
