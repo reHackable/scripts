@@ -69,8 +69,7 @@ function create_placeholder_pdf {
 
 # $1 - Output directory
 function create_placeholder_epub {
-
-echo "$(cat <<- 'EOF'
+  cat << 'EOF' | xxd -r > "$1"
 00000000: 504b 0304 1400 1608 0000 a173 b74e 6f61  PK.........s.Noa
 00000010: ab2c 1400 0000 1400 0000 0800 0000 6d69  .,............mi
 00000020: 6d65 7479 7065 6170 706c 6963 6174 696f  metypeapplicatio
@@ -196,8 +195,6 @@ echo "$(cat <<- 'EOF'
 000007a0: 732e 7478 7450 4b05 0600 0000 0006 0006  s.txtPK.........
 000007b0: 006c 0100 0039 0600 0000 00              .l...9.....
 EOF
-)" | xxd -r > "$1"
-
 }
 
 # Grep remote fs (grep on reMarkable)

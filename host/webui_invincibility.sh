@@ -100,7 +100,7 @@ function usage {
 }
 
 function patch_xochitl {
-echo "$(cat <<- 'EOF'
+  cat << 'EOF' | xxd -r > "/tmp/webui_invincibility.patch"
 00000000: 4253 4449 4646 3430 3a00 0000 0000 0000  BSDIFF40:.......
 00000010: 3a00 0000 0000 0000 c437 4200 0000 0000  :........7B.....
 00000020: 425a 6839 3141 5926 5359 e208 05e2 0000  BZh91AY&SY......
@@ -113,8 +113,6 @@ echo "$(cat <<- 'EOF'
 00000090: 9098 6eec 425a 6839 1772 4538 5090 0000  ..n.BZh9.rE8P...
 000000a0: 0000                                     ..
 EOF
-)" | xxd -r > "/tmp/webui_invincibility.patch"
-
   if [ ! -f "/tmp/webui_invincibility.patch" ]; then
     echo "webui_invincibility: Failed to create patchfile!"
     return 1
