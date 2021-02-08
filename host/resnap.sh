@@ -90,16 +90,53 @@ if [ -f $OUTPUT ]; then
   OUTPUT="$filename-$index$extension"
 fi
 
-# grab framebuffer from reMarkable
-ssh root@$ADDRESS $SSH_OPT "cat /dev/fb0" | \
-  ffmpeg -vcodec rawvideo \
+ssh_cmd() {
+    ssh root@$ADDRESS $SSH_OPT "$@"
+}
+
+rm_version="$(ssh_cmd cat /sys/devices/soc0/machine)"
+
+case "$rm_version" in
+    "reMarkable 1.0")
+        pixel_format="gray16le"
+        video_filters=""
+        width=1408
+        height=1872
+        dump_framebuffer_cmd='cat /dev/fb0'
+        ;;
+    "reMarkable 2.0")
+        pixel_format="gray8"
+        video_filters="-vf transpose=2"
+        width=1872
+        height=1404
+        # see https://github.com/rien/reStream/issues/28
+        dump_framebuffer_cmd=$(cat << "EOF"
+pid=$(pidof xochitl);
+offset=$(grep "/dev/fb0" /proc/$pid/maps | awk -F '-' '{print substr($2, 0, 8)}');
+dd if=/proc/$pid/mem bs=1 count=2628288 skip=$((0x$offset + 8)) 2>/dev/null
+EOF
+)
+        ;;
+    *)
+        echo "Unsupported reMarkable version: $rm_version."
+        exit 1
+        ;;
+esac
+
+grab_framebuffer() {
+    ssh_cmd "$dump_framebuffer_cmd"
+}
+
+grab_framebuffer | ffmpeg \
        -loglevel panic \
+       -vcodec rawvideo \
        -f rawvideo \
-       -pix_fmt gray16le \
-       -s 1408,1872 \
+       -pixel_format "$pixel_format" \
+       -s "$width","$height" \
        -i - \
        -vframes 1 \
        -f image2 \
+       $video_filters \
        -vcodec mjpeg $OUTPUT
 
 if [ ! -f "$OUTPUT" ]; then
