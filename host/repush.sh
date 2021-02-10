@@ -268,7 +268,7 @@ function uuid_of_root_file {
 
   for metadata_path in $matches_by_name; do
 
-    metadata="$(ssh -S remarkable-ssh root@"$SSH_ADDRESS" "cat $metadata_path")"
+    metadata="$(ssh -S remarkable-ssh root@"$SSH_ADDRESS" "cat \"$metadata_path\"")"
 
     if echo "$metadata" | grep -qF '"parent": ""' && echo "$metadata" | grep -qF '"deleted": false'; then
       RET_UUID="$(basename "$metadata_path" .metadata)"
