@@ -284,7 +284,7 @@ function uuid_of_root_file {
 
 # $? - 1: file valid | 0: file invalid
 function check_file {
-  file_cmd_output="$(file -F '|' "$1")"
+  file_cmd_output="$(file -LF '|' "$1")"
 
   if echo "$file_cmd_output" | grep -q "| directory"; then
     local is_directory="true"
@@ -318,7 +318,7 @@ function check_file {
 function push {
 
   ((TOTAL++))
-  file_cmd_output="$(file -F '|' "$1")"
+  file_cmd_output="$(file -LF '|' "$1")"
 
   # If file is directory, set extension to PDF for placeholder file
   if echo "$file_cmd_output" | grep -q "| \(PDF\|directory\)"; then
