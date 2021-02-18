@@ -335,7 +335,8 @@ function push {
     directory=""
   fi
 
-  placeholder_basename="$(basename "$1" ".$extension")"
+  placeholder_basename="$(basename "$1")"
+  placeholder_basename_no_ext="$(basename "$1" ".$extension")"
 
   # Since the WebUI doesn't accept directories, we're creating a PDF placeholder
   # fs entry, who's metadata we'll then alter to that of a directory fs entry
@@ -357,7 +358,7 @@ function push {
 
       # Wait for metadata to be generated
       while true; do
-        uuid_of_root_file "$placeholder_basename"
+        uuid_of_root_file "$placeholder_basename_no_ext"
         if [ ! -z "$RET_UUID" ]; then
           break
         fi
