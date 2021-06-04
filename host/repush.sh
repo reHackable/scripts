@@ -268,7 +268,7 @@ function uuid_of_root_file {
 
   for metadata_path in $matches_by_name; do
 
-    metadata="$(ssh -S remarkable-ssh root@"$SSH_ADDRESS" "cat $metadata_path")"
+    metadata="$(ssh -S remarkable-ssh root@"$SSH_ADDRESS" "cat \"$metadata_path\"")"
 
     if echo "$metadata" | grep -qF '"parent": ""' && echo "$metadata" | grep -qF '"deleted": false'; then
       RET_UUID="$(basename "$metadata_path" .metadata)"
@@ -284,7 +284,7 @@ function uuid_of_root_file {
 
 # $? - 1: file valid | 0: file invalid
 function check_file {
-  file_cmd_output="$(file -F '|' "$1")"
+  file_cmd_output="$(file -LF '|' "$1")"
 
   if echo "$file_cmd_output" | grep -q "| directory"; then
     local is_directory="true"
@@ -318,7 +318,7 @@ function check_file {
 function push {
 
   ((TOTAL++))
-  file_cmd_output="$(file -F '|' "$1")"
+  file_cmd_output="$(file -LF '|' "$1")"
 
   # If file is directory, set extension to PDF for placeholder file
   if echo "$file_cmd_output" | grep -q "| \(PDF\|directory\)"; then
@@ -336,6 +336,7 @@ function push {
   fi
 
   placeholder_basename="$(basename "$1")"
+  placeholder_basename_no_ext="$(basename "$1" ".$extension")"
 
   # Since the WebUI doesn't accept directories, we're creating a PDF placeholder
   # fs entry, who's metadata we'll then alter to that of a directory fs entry
@@ -357,7 +358,7 @@ function push {
 
       # Wait for metadata to be generated
       while true; do
-        uuid_of_root_file "$placeholder_basename"
+        uuid_of_root_file "$placeholder_basename_no_ext"
         if [ ! -z "$RET_UUID" ]; then
           break
         fi
@@ -378,7 +379,7 @@ function push {
         # Replace placeholder with document
         retry=""
         while true; do
-          scp "$(realpath "$1")" root@"$SSH_ADDRESS":"/home/root/.local/share/remarkable/xochitl/$RET_UUID.$extension"
+          scp -oControlPath=remarkable-ssh "$(realpath "$1")" root@"$SSH_ADDRESS":"/home/root/.local/share/remarkable/xochitl/$RET_UUID.$extension"
 
           if [ $? -ne 0 ]; then
             read -r -p "Failed to replace placeholder! Retry? [Y/n]: " retry
@@ -504,7 +505,7 @@ done
 
 # Establish remote connection
 if [ "$REMOTE" ]; then
-  if nc -z localhost "$PORT" > /dev/null; then
+  if nc -z localhost "$PORT" 2&>1 > /dev/null; then
     echo "repush: Port $PORT is already used by a different process!"
     exit -1
   fi
@@ -525,7 +526,7 @@ fi
 
 # Check if file with same name already exists in the root directory
 for f in "$@"; do
-  uuid_of_root_file "$(basename "$f")"
+  uuid_of_root_file "$(basename "$f" "${f##*.}")"
 
   if [ ! -z $RET_UUID ]; then
     echo "repush: Cannot push '$f': File already exists in root directory"
