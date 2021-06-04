@@ -505,7 +505,7 @@ done
 
 # Establish remote connection
 if [ "$REMOTE" ]; then
-  if nc -z localhost "$PORT" > /dev/null; then
+  if nc -z localhost "$PORT" 2&>1 > /dev/null; then
     echo "repush: Port $PORT is already used by a different process!"
     exit -1
   fi
